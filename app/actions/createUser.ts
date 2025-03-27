@@ -14,6 +14,7 @@ async function createUser(
   const password = formData.get("password") as string;
   const confirmPassword = formData.get("confirm-password") as string;
   const referralCode = formData.get("referral-code") as string;
+  const imageId = formData.get("imageId") as string;
 
   if (!email || !name || !password) {
     return {
@@ -34,11 +35,32 @@ async function createUser(
   }
 
   // Get account instance
-  const { account, databases } = await createAdminClient();
+  const { account, databases, storage } = await createAdminClient();
 
   try {
+    const imageFile = formData.get("deposit-proof") as File;
+    if (!imageFile) return { error: "Deposit proof image is required" };
+
+    // Upload image to Appwrite Storage
+    const imageResponse = await storage.createFile(
+      process.env.NEXT_PUBLIC_APPWRITE_BUCKET_ID!,
+      ID.unique(),
+      imageFile
+    );
+
     // Create user
     const user = await account.create(ID.unique(), email, password, name);
+
+    await databases.createDocument(
+      process.env.NEXT_PUBLIC_APPWRITE_DATABASE!,
+      process.env.NEXT_PUBLIC_APPWRITE_PENDING_COLLECTION!, // New pending collection
+      ID.unique(),
+      {
+        userId: user.$id,
+        imageId: imageResponse.$id,
+        status: "pending",
+      }
+    );
 
     // Generate referral code (using user ID)
     const userReferralCode = user.$id;

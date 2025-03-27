@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import createUser from "../actions/createUser";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useFormState } from "react-dom";
@@ -10,23 +10,44 @@ const initialState = { error: "", success: false };
 
 const SignUp = () => {
   const [state, formAction] = useFormState(createUser, initialState);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const searchParams = useSearchParams();
   const referralCode = searchParams.get("referral");
   const router = useRouter();
 
   useEffect(() => {
     if (state?.error) console.log(state.error);
-    if (state?.success) {
-      console.log("You can now log in!");
-      router.push("/sign-in");
-    }
+    if (state?.success) router.push("/sign-in");
   }, [state, router]);
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) setSelectedFile(e.target.files[0]);
+  };
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-100">
       <div className="w-full max-w-md bg-white shadow-md rounded-md p-6">
         <h2 className="text-2xl font-bold text-center mb-6">Sign Up</h2>
         <form action={formAction}>
+          <div className="mb-4">
+            <label
+              htmlFor="deposit-proof"
+              className="block text-sm font-medium text-gray-700"
+            >
+              Deposit Proof (Image)
+            </label>
+            <input
+              type="file"
+              id="deposit-proof"
+              name="deposit-proof"
+              onChange={handleFileChange}
+              className="mt-1 p-3 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+              accept="image/*"
+              required
+            />
+          </div>
+
+          {/* Existing form fields */}
+          <input type="hidden" name="image" value={selectedFile?.name} />
           <div className="mb-4">
             <label
               htmlFor="referral-code"

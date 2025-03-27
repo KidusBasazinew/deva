@@ -16,6 +16,24 @@ export interface Deposit extends Models.Document {
   type?: "regular" | "referral_bonus"; // Add this
   referredUser?: string; // Add this
 }
+
+export async function approveDepositRequest(userId: string, amount: number) {
+  const { databases } = await createAdminClient();
+  await databases.createDocument(
+    process.env.NEXT_PUBLIC_APPWRITE_DATABASE!,
+    process.env.NEXT_PUBLIC_APPWRITE_COLLECTION!,
+    ID.unique(),
+    {
+      userId,
+      amount,
+      startDate: new Date().toISOString(),
+      interestRate: HOURLY_INTEREST_RATE,
+      isWithdrawn: false,
+      type: "regular",
+    } as Deposit
+  );
+}
+
 export async function createDeposit(prevState: any, formData: FormData) {
   const { user } = await checkAuth();
   if (!user) return { error: "Not authenticated" };

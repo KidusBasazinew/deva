@@ -38,7 +38,7 @@ export default function DepositPage() {
       <div className="w-full max-w-2xl bg-white shadow-md rounded-md p-6">
         <h1 className="text-2xl font-bold mb-6">Deposit System</h1>
 
-        <form action={formAction} className="mb-8">
+        {/* <form action={formAction} className="mb-8">
           <div className="mb-4">
             <label className="block text-sm font-medium mb-2">
               Deposit Amount
@@ -55,12 +55,12 @@ export default function DepositPage() {
             Create Deposit
           </button>
           {state.error && <p className="text-red-500 mt-2">{state.error}</p>}
-        </form>
+        </form> */}
 
         <div className="border-t pt-4">
           <h2 className="text-xl font-bold mb-4">Active Deposits</h2>
           {deposits.length === 0 ? (
-            <p>No active deposits</p>
+            <p>Your deposit request is pending admin approval</p>
           ) : (
             <div className="space-y-4">
               {deposits.map((deposit) => (
