@@ -79,6 +79,8 @@ async function createUser(
             startDate: new Date().toISOString(),
             interestRate: 0.1, // Match HOURLY_INTEREST_RATE from deposite.ts
             isWithdrawn: false,
+            type: "referral_bonus",
+            referredUser: user.$id,
           } as Deposit
         );
       }

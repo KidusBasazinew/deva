@@ -19,7 +19,7 @@ export default function ReferralDashboard() {
       const { databases } = await createAdminClient();
       const users = await databases.listDocuments(
         process.env.NEXT_PUBLIC_APPWRITE_DATABASE!,
-        "users",
+        process.env.NEXT_PUBLIC_APPWRITE_REFERRAL_COLLECTION!,
         [Query.equal("userId", user.id)]
       );
 

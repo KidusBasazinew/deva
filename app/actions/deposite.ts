@@ -13,6 +13,8 @@ export interface Deposit extends Models.Document {
   interestRate: number;
   userId: string;
   isWithdrawn: boolean;
+  type?: "regular" | "referral_bonus"; // Add this
+  referredUser?: string; // Add this
 }
 export async function createDeposit(prevState: any, formData: FormData) {
   const { user } = await checkAuth();

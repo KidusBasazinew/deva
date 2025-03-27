@@ -3,14 +3,15 @@
 import Link from "next/link";
 import React, { useEffect } from "react";
 import createUser from "../actions/createUser";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useFormState } from "react-dom";
 
 const initialState = { error: "", success: false };
 
 const SignUp = () => {
   const [state, formAction] = useFormState(createUser, initialState);
-
+  const searchParams = useSearchParams();
+  const referralCode = searchParams.get("referral");
   const router = useRouter();
 
   useEffect(() => {
@@ -37,6 +38,7 @@ const SignUp = () => {
               type="text"
               id="referral-code"
               name="referral-code"
+              defaultValue={referralCode || ""}
               className="mt-1 p-3 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
               placeholder="Enter referral code"
             />
