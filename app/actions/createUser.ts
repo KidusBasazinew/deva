@@ -3,7 +3,7 @@
 import { createAdminClient } from "@/config/appwrite";
 import { ID } from "node-appwrite";
 import { Query } from "appwrite";
-import { Deposit } from "./deposite";
+import { Deposit, incrementDeposit } from "./deposite";
 
 async function createUser(
   prevState: { error: string; success?: boolean } | undefined,
@@ -67,6 +67,8 @@ async function createUser(
 
       if (inviter.documents.length > 0) {
         const inviterUserId = inviter.documents[0].userId;
+
+        await incrementDeposit(inviterUserId, 400);
 
         // Add 400 to inviter's deposit
         await databases.createDocument(

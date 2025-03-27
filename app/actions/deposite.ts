@@ -113,3 +113,41 @@ export async function withdrawDeposit(depositId: string) {
 
   return { success: true };
 }
+
+export async function incrementDeposit(userId: string, amount: number) {
+  const { databases } = await createAdminClient();
+
+  // Find the active deposit
+  const deposits = await databases.listDocuments<Deposit>(
+    process.env.NEXT_PUBLIC_APPWRITE_DATABASE!,
+    process.env.NEXT_PUBLIC_APPWRITE_COLLECTION!,
+    [Query.equal("userId", userId), Query.equal("isWithdrawn", false)]
+  );
+
+  if (deposits.documents.length === 0) {
+    // Create new deposit if none exists
+    return await databases.createDocument(
+      process.env.NEXT_PUBLIC_APPWRITE_DATABASE!,
+      process.env.NEXT_PUBLIC_APPWRITE_COLLECTION!,
+      ID.unique(),
+      {
+        userId,
+        amount,
+        startDate: new Date().toISOString(),
+        interestRate: HOURLY_INTEREST_RATE,
+        isWithdrawn: false,
+      } as Deposit
+    );
+  }
+
+  // Update existing deposit
+  const deposit = deposits.documents[0];
+  return await databases.updateDocument(
+    process.env.NEXT_PUBLIC_APPWRITE_DATABASE!,
+    process.env.NEXT_PUBLIC_APPWRITE_COLLECTION!,
+    deposit.$id,
+    {
+      amount: deposit.amount + amount,
+    }
+  );
+}
