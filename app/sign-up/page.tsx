@@ -28,6 +28,21 @@ const SignUp = () => {
         <form action={formAction}>
           <div className="mb-4">
             <label
+              htmlFor="referral-code"
+              className="block text-sm font-medium text-gray-700"
+            >
+              Referral Code (optional)
+            </label>
+            <input
+              type="text"
+              id="referral-code"
+              name="referral-code"
+              className="mt-1 p-3 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+              placeholder="Enter referral code"
+            />
+          </div>
+          <div className="mb-4">
+            <label
               htmlFor="name"
               className="block text-sm font-medium text-gray-700"
             >

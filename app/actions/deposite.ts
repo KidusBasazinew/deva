@@ -7,7 +7,7 @@ import { ID, Models, Query } from "appwrite";
 const HOURLY_INTEREST_RATE = 0.1; // 0.1% per hour
 const LOCK_PERIOD_DAYS = 30;
 
-interface Deposit extends Models.Document {
+export interface Deposit extends Models.Document {
   amount: number;
   startDate: string;
   interestRate: number;
