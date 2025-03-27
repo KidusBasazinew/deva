@@ -3,36 +3,44 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { useAuth } from "@/context/authContext";
 
 // import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 // import { MenuIcon } from "lucide-react";
 import { destroySession } from "@/app/actions/destroySession";
 
-const Links = [
+const baseLinks = [
   { label: "Home", href: "/" },
   { label: "Deposite", href: "/deposite" },
   { label: "Dashboard", href: "/dashboard" },
 ];
 
+const adminLink = { label: "Approve(admin)", href: "/admin/approve" };
+
 const Navbar = () => {
   const currentPath = usePathname();
-
   const router = useRouter();
-
   const { isAuthenticated, setIsAuthenticated, currentUser } = useAuth();
+  const [filteredLinks, setFilteredLinks] = useState(baseLinks);
+
+  useEffect(() => {
+    // Update links when user changes
+    if (currentUser?.email === "kidusbw@gmail.com") {
+      setFilteredLinks([...baseLinks, adminLink]);
+    } else {
+      setFilteredLinks(baseLinks);
+    }
+  }, [currentUser]);
 
   const handleLogout = async () => {
     const result = await destroySession();
-
-    if (result && result.success) {
+    if (result?.success) {
       setIsAuthenticated(false);
       router.push("/sign-in");
-    } else {
-      console.log(result?.error);
     }
   };
+
   return (
     <nav
       className="fixed top-0 left-0 right-0 w-full z-50
@@ -40,7 +48,7 @@ text-white drop-shadow-xl"
     >
       {/* Desktop Navbar */}
       <div className="hidden lg:flex justify-center gap-x-9 py-4 px-10 bg-white w-fit mx-auto mt-4 rounded-2xl items-center">
-        {Links.slice(0, 4).map((link) => (
+        {filteredLinks.map((link: any) => (
           <Link
             key={link.label}
             href={link.href}
@@ -52,17 +60,6 @@ text-white drop-shadow-xl"
           </Link>
         ))}
         <Image src="/hotel_logo.svg" width={78} height={42} alt="Hotel Logo" />
-        {Links.slice(4).map((link) => (
-          <Link
-            key={link.label}
-            href={link.href}
-            className={`${
-              currentPath === link.href ? "text-blue-500" : "text-black"
-            } hover:text-blue-500 transition duration-200`}
-          >
-            {link.label}
-          </Link>
-        ))}
 
         {!isAuthenticated ? (
           <>

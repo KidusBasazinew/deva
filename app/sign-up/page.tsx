@@ -33,7 +33,7 @@ const SignUp = () => {
               htmlFor="deposit-proof"
               className="block text-sm font-medium text-gray-700"
             >
-              Deposit Proof (Image)
+              Your transaction screen shot Proof (Image)
             </label>
             <input
               type="file"
