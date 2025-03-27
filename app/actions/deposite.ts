@@ -5,7 +5,7 @@ import { createAdminClient } from "../../config/appwrite";
 import { ID, Models, Query } from "appwrite";
 
 const HOURLY_INTEREST_RATE = 0.1; // 0.1% per hour
-const LOCK_PERIOD_DAYS = 30;
+const LOCK_PERIOD_DAYS = 0;
 
 export interface Deposit extends Models.Document {
   amount: number;
@@ -104,11 +104,11 @@ function calculateCurrentValue(
   return amount * Math.pow(1 + interestRate / 100, hoursElapsed);
 }
 
-export async function withdrawDeposit(depositId: string) {
+export async function withdrawDeposit(depositId: string, bankAccount: string) {
   const { databases } = await createAdminClient();
   const deposit = await databases.getDocument(
-    process.env.NEXT_PUBLIC_APPWRITE_DATABASE as string,
-    process.env.NEXT_PUBLIC_APPWRITE_COLLECTION as string,
+    process.env.NEXT_PUBLIC_APPWRITE_DATABASE!,
+    process.env.NEXT_PUBLIC_APPWRITE_COLLECTION!,
     depositId
   );
 
@@ -120,12 +120,18 @@ export async function withdrawDeposit(depositId: string) {
     return { error: "Deposit is still locked for withdrawal" };
   }
 
-  await databases.updateDocument(
-    process.env.NEXT_PUBLIC_APPWRITE_DATABASE as string,
-    process.env.NEXT_PUBLIC_APPWRITE_COLLECTION as string,
-    depositId,
+  // Create withdrawal request
+  await databases.createDocument(
+    process.env.NEXT_PUBLIC_APPWRITE_DATABASE!,
+    process.env.NEXT_PUBLIC_APPWRITE_WITHDRAWN_COLLECTION!, // New collection
+    ID.unique(),
     {
-      isWithdrawn: true,
+      userId: deposit.userId,
+      depositId: deposit.$id,
+      bankAccount,
+      amount: deposit.amount,
+      createdAt: new Date().toISOString(),
+      status: "pending",
     }
   );
 

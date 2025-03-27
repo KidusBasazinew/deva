@@ -24,8 +24,15 @@ export default function DepositPage() {
     }
   }, [currentUser]);
 
+  const [bankAccount, setBankAccount] = useState("");
+
   const handleWithdraw = async (depositId: string) => {
-    const result = await withdrawDeposit(depositId);
+    if (!bankAccount) {
+      alert("Please enter bank account number");
+      return;
+    }
+
+    const result = await withdrawDeposit(depositId, bankAccount);
     if (result.success) {
       setDeposits((prev) => prev.filter((d) => d.$id !== depositId));
     } else {
@@ -74,9 +81,21 @@ export default function DepositPage() {
                         {new Date(deposit.startDate).toLocaleDateString()}
                       </p>
                     </div>
-                    <button onClick={() => handleWithdraw(deposit.$id)}>
-                      Withdraw
-                    </button>
+                    <div className="flex flex-col">
+                      <input
+                        type="text"
+                        placeholder="Bank Account Number"
+                        className="mt-2 p-2 border rounded"
+                        value={bankAccount}
+                        onChange={(e) => setBankAccount(e.target.value)}
+                      />
+                      <button
+                        onClick={() => handleWithdraw(deposit.$id)}
+                        disabled={!bankAccount}
+                      >
+                        Withdraw
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))}

@@ -14,6 +14,7 @@ const baseLinks = [
   { label: "Home", href: "/" },
   { label: "Deposite", href: "/deposite" },
   { label: "Dashboard", href: "/dashboard" },
+  { label: "Withdrawals", href: "/admin/withdrawals", admin: true },
 ];
 
 const adminLink = { label: "Approve(admin)", href: "/admin/approve" };
