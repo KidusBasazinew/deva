@@ -65,10 +65,10 @@ export async function getDeposits() {
     [Query.equal("userId", user.id), Query.equal("isWithdrawn", false)]
   );
 
-  return response.documents.map((deposit) => ({
+  return response.documents.slice(0, 1).map((deposit) => ({
     ...deposit,
     currentValue: calculateCurrentValue(
-      deposit.amount,
+      deposit.amount, // This now includes referral bonuses
       new Date(deposit.startDate),
       deposit.interestRate
     ),
@@ -117,7 +117,7 @@ export async function withdrawDeposit(depositId: string) {
 export async function incrementDeposit(userId: string, amount: number) {
   const { databases } = await createAdminClient();
 
-  // Find the active deposit
+  // Find active deposit
   const deposits = await databases.listDocuments<Deposit>(
     process.env.NEXT_PUBLIC_APPWRITE_DATABASE!,
     process.env.NEXT_PUBLIC_APPWRITE_COLLECTION!,
@@ -136,7 +136,7 @@ export async function incrementDeposit(userId: string, amount: number) {
         startDate: new Date().toISOString(),
         interestRate: HOURLY_INTEREST_RATE,
         isWithdrawn: false,
-      } as Deposit
+      }
     );
   }
 
@@ -146,8 +146,6 @@ export async function incrementDeposit(userId: string, amount: number) {
     process.env.NEXT_PUBLIC_APPWRITE_DATABASE!,
     process.env.NEXT_PUBLIC_APPWRITE_COLLECTION!,
     deposit.$id,
-    {
-      amount: deposit.amount + amount,
-    }
+    { amount: deposit.amount + amount }
   );
 }
