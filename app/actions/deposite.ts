@@ -17,6 +17,46 @@ export interface Deposit extends Models.Document {
   referredUser?: string; // Add this
 }
 
+export async function createPackageDeposit(prevState: any, formData: FormData) {
+  const { user } = await checkAuth();
+  if (!user) return { error: "Not authenticated" };
+
+  const amount = Number(formData.get("amount"));
+  const imageFile = formData.get("deposit-proof") as File;
+
+  if (isNaN(amount)) return { error: "Invalid amount" };
+  if (!imageFile) return { error: "Deposit proof required" };
+
+  const { databases, storage } = await createAdminClient();
+
+  try {
+    // Upload image
+    const imageResponse = await storage.createFile(
+      process.env.NEXT_PUBLIC_APPWRITE_BUCKET_ID!,
+      ID.unique(),
+      imageFile
+    );
+
+    // Create pending deposit
+    await databases.createDocument(
+      process.env.NEXT_PUBLIC_APPWRITE_DATABASE!,
+      process.env.NEXT_PUBLIC_APPWRITE_PENDING_COLLECTION!,
+      ID.unique(),
+      {
+        userId: user.id,
+        imageId: imageResponse.$id,
+        amount,
+        status: "pending",
+      }
+    );
+
+    return { success: true, error: "" };
+  } catch (error) {
+    console.error("Deposit error:", error);
+    return { error: "Failed to create deposit" };
+  }
+}
+
 export async function approveDepositRequest(userId: string, amount: number) {
   const { databases } = await createAdminClient();
   await databases.createDocument(
@@ -83,7 +123,7 @@ export async function getDeposits() {
     [Query.equal("userId", user.id), Query.equal("isWithdrawn", false)]
   );
 
-  return response.documents.slice(0, 1).map((deposit) => ({
+  return response.documents.map((deposit) => ({
     ...deposit,
     currentValue: calculateCurrentValue(
       deposit.amount, // This now includes referral bonuses

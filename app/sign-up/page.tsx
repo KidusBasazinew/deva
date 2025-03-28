@@ -1,7 +1,6 @@
 "use client";
-
 import Link from "next/link";
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import createUser from "../actions/createUser";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useFormState } from "react-dom";
@@ -10,7 +9,6 @@ const initialState = { error: "", success: false };
 
 const SignUp = () => {
   const [state, formAction] = useFormState(createUser, initialState);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const searchParams = useSearchParams();
   const referralCode = searchParams.get("referral");
   const router = useRouter();
@@ -20,34 +18,13 @@ const SignUp = () => {
     if (state?.success) router.push("/sign-in");
   }, [state, router]);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) setSelectedFile(e.target.files[0]);
-  };
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-100">
       <div className="w-full max-w-md bg-white shadow-md rounded-md p-6">
         <h2 className="text-2xl font-bold text-center mb-6">Sign Up</h2>
         <form action={formAction}>
-          <div className="mb-4">
-            <label
-              htmlFor="deposit-proof"
-              className="block text-sm font-medium text-gray-700"
-            >
-              Your transaction screen shot Proof (Image)
-            </label>
-            <input
-              type="file"
-              id="deposit-proof"
-              name="deposit-proof"
-              onChange={handleFileChange}
-              className="mt-1 p-3 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-              accept="image/*"
-              required
-            />
-          </div>
+          {/* Removed deposit proof upload section */}
 
-          {/* Existing form fields */}
-          <input type="hidden" name="image" value={selectedFile?.name} />
           <div className="mb-4">
             <label
               htmlFor="referral-code"
@@ -77,6 +54,7 @@ const SignUp = () => {
               name="name"
               className="mt-1 p-3 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
               placeholder="John Doe"
+              required
             />
           </div>
           <div className="mb-4">
@@ -92,6 +70,7 @@ const SignUp = () => {
               name="email"
               className="mt-1 p-3 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
               placeholder="you@example.com"
+              required
             />
           </div>
           <div className="mb-6">
@@ -107,25 +86,32 @@ const SignUp = () => {
               name="password"
               className="mt-1 p-3 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
               placeholder="********"
+              required
+              minLength={8}
             />
           </div>
           <div className="mb-6">
             <label
-              htmlFor="password"
+              htmlFor="confirm-password"
               className="block text-sm font-medium text-gray-700"
             >
               Confirm Password
             </label>
             <input
               type="password"
-              id="password"
+              id="confirm-password"
               name="confirm-password"
               className="mt-1 p-3 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
               placeholder="********"
+              required
+              minLength={8}
             />
           </div>
-          <button type="submit" className="!w-full">
-            Sign Up
+          <button
+            type="submit"
+            className="w-full bg-indigo-600 text-white p-3 rounded-md hover:bg-indigo-700"
+          >
+            Create Account
           </button>
         </form>
         <p className="mt-4 text-center text-sm text-gray-600">

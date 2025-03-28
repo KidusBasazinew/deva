@@ -1,22 +1,29 @@
 "use client";
-
 import { useFormState } from "react-dom";
 import { useEffect, useState } from "react";
-
 import Link from "next/link";
 import {
-  createDeposit,
+  createPackageDeposit,
   getDeposits,
   withdrawDeposit,
 } from "../actions/deposite";
 import { useAuth } from "@/context/authContext";
 
-const initialState = { error: "", success: false };
+const packages = [
+  { amount: 100, label: "Starter Package" },
+  { amount: 500, label: "Premium Package" },
+  { amount: 1000, label: "VIP Package" },
+];
 
 export default function DepositPage() {
   const { currentUser } = useAuth();
-  const [state, formAction] = useFormState(createDeposit, initialState);
+  const [state, formAction] = useFormState(createPackageDeposit, {
+    error: "",
+    success: false,
+  });
   const [deposits, setDeposits] = useState<any[]>([]);
+  const [selectedPackage, setSelectedPackage] = useState<number>(100);
+  const [bankAccount, setBankAccount] = useState("");
 
   useEffect(() => {
     if (currentUser) {
@@ -24,11 +31,9 @@ export default function DepositPage() {
     }
   }, [currentUser]);
 
-  const [bankAccount, setBankAccount] = useState("");
-
   const handleWithdraw = async (depositId: string) => {
     if (!bankAccount) {
-      alert("Please enter bank account number");
+      alert("Please enter a bank account number");
       return;
     }
 
@@ -43,31 +48,62 @@ export default function DepositPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-100">
       <div className="w-full max-w-2xl bg-white shadow-md rounded-md p-6">
-        <h1 className="text-2xl font-bold mb-6">Deposit System</h1>
+        <h1 className="text-2xl font-bold mb-6">Investment Packages</h1>
 
-        {/* <form action={formAction} className="mb-8">
+        <form action={formAction} className="mb-8">
+          <div className="grid grid-cols-3 gap-4 mb-4">
+            {packages.map((pkg) => (
+              <button
+                key={pkg.amount}
+                type="button"
+                onClick={() => setSelectedPackage(pkg.amount)}
+                className={`p-4 border rounded ${
+                  selectedPackage === pkg.amount
+                    ? "bg-blue-100 border-blue-500"
+                    : ""
+                }`}
+              >
+                <h3 className="font-bold">{pkg.label}</h3>
+                <p>${pkg.amount}</p>
+              </button>
+            ))}
+          </div>
+
+          <input type="hidden" name="amount" value={selectedPackage} />
+
           <div className="mb-4">
             <label className="block text-sm font-medium mb-2">
-              Deposit Amount
+              Upload Payment Proof
             </label>
             <input
-              type="number"
-              name="amount"
+              type="file"
+              name="deposit-proof"
+              accept="image/*"
               className="p-2 border rounded w-full"
-              min="1"
               required
             />
           </div>
-          <button type="submit" className="w-full">
-            Create Deposit
-          </button>
-          {state.error && <p className="text-red-500 mt-2">{state.error}</p>}
-        </form> */}
 
+          <button
+            type="submit"
+            className="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600"
+          >
+            Submit Investment
+          </button>
+
+          {state.error && <p className="text-red-500 mt-2">{state.error}</p>}
+          {state.success && (
+            <p className="text-green-500 mt-2">
+              Deposit submitted for approval!
+            </p>
+          )}
+        </form>
+
+        {/* Active Deposits Section */}
         <div className="border-t pt-4">
           <h2 className="text-xl font-bold mb-4">Active Deposits</h2>
           {deposits.length === 0 ? (
-            <p>Your deposit request is pending admin approval</p>
+            <p>Your deposit request is pending admin approval.</p>
           ) : (
             <div className="space-y-4">
               {deposits.map((deposit) => (
@@ -91,7 +127,12 @@ export default function DepositPage() {
                       />
                       <button
                         onClick={() => handleWithdraw(deposit.$id)}
-                        disabled={!bankAccount}
+                        disabled={!bankAccount.trim()}
+                        className={`mt-2 p-2 rounded text-white ${
+                          bankAccount.trim()
+                            ? "bg-green-500 hover:bg-green-600"
+                            : "bg-gray-300"
+                        }`}
                       >
                         Withdraw
                       </button>

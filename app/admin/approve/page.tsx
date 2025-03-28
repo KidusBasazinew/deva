@@ -2,18 +2,19 @@
 import { useEffect, useState } from "react";
 import { createAdminClient } from "@/config/appwrite";
 import { ID, Query } from "appwrite";
-import { approveDepositRequest } from "@/app/actions/deposite";
 
 interface PendingDeposit {
   $id: string;
   userId: string;
   imageId: string;
   status: string;
+  amount: number;
 }
+
+const HOURLY_INTEREST_RATE = 0.1;
 
 export default function AdminApprovalPage() {
   const [pendingDeposits, setPendingDeposits] = useState<PendingDeposit[]>([]);
-  const [amounts, setAmounts] = useState<{ [key: string]: number }>({});
 
   useEffect(() => {
     const fetchPending = async () => {
@@ -23,25 +24,48 @@ export default function AdminApprovalPage() {
         process.env.NEXT_PUBLIC_APPWRITE_PENDING_COLLECTION!,
         [Query.equal("status", "pending")]
       );
-      setPendingDeposits(response.documents as unknown as PendingDeposit[]);
+
+      // Explicitly map documents to PendingDeposit type
+      const validatedDeposits = response.documents.map((doc) => ({
+        $id: doc.$id,
+        userId: doc.userId,
+        imageId: doc.imageId,
+        status: doc.status,
+        amount: Number(doc.amount),
+      })) as PendingDeposit[];
+
+      setPendingDeposits(validatedDeposits);
     };
     fetchPending();
   }, []);
 
-  // Correct image URL construction
   const getImageUrl = (imageId: string) => {
     return `${process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT}/storage/buckets/${process.env.NEXT_PUBLIC_APPWRITE_BUCKET_ID}/files/${imageId}/preview?project=${process.env.NEXT_PUBLIC_APPWRITE_PROJECT}`;
   };
 
   const handleApprove = async (deposit: PendingDeposit) => {
-    if (!amounts[deposit.$id] || amounts[deposit.$id] <= 0) {
-      alert("Please enter a valid amount");
+    const { databases } = await createAdminClient();
+
+    // Validate amount before proceeding
+    if (isNaN(deposit.amount)) {
+      alert("Invalid deposit amount");
       return;
     }
 
-    await approveDepositRequest(deposit.userId, amounts[deposit.$id]);
+    await databases.createDocument(
+      process.env.NEXT_PUBLIC_APPWRITE_DATABASE!,
+      process.env.NEXT_PUBLIC_APPWRITE_COLLECTION!,
+      ID.unique(),
+      {
+        userId: deposit.userId,
+        amount: deposit.amount,
+        startDate: new Date().toISOString(),
+        interestRate: HOURLY_INTEREST_RATE,
+        isWithdrawn: false,
+        type: "regular",
+      }
+    );
 
-    const { databases } = await createAdminClient();
     await databases.updateDocument(
       process.env.NEXT_PUBLIC_APPWRITE_DATABASE!,
       process.env.NEXT_PUBLIC_APPWRITE_PENDING_COLLECTION!,
@@ -49,7 +73,7 @@ export default function AdminApprovalPage() {
       { status: "approved" }
     );
 
-    setPendingDeposits(pendingDeposits.filter((d) => d.$id !== deposit.$id));
+    setPendingDeposits((prev) => prev.filter((d) => d.$id !== deposit.$id));
   };
 
   return (
@@ -62,20 +86,15 @@ export default function AdminApprovalPage() {
             alt="Deposit proof"
             className="w-64 h-64 object-cover"
           />
-          <input
-            type="number"
-            placeholder="Amount"
-            className="border p-2 m-2"
-            onChange={(e) =>
-              setAmounts((prev) => ({
-                ...prev,
-                [deposit.$id]: Number(e.target.value),
-              }))
-            }
-          />
+          <div className="mt-2">
+            {/* Safe number formatting with fallback */}
+            <p className="font-bold">
+              Amount: ${deposit.amount?.toFixed(2) || "0.00"}
+            </p>
+          </div>
           <button
             onClick={() => handleApprove(deposit)}
-            className="bg-blue-500 text-white p-2"
+            className="bg-blue-500 text-white p-2 mt-2"
           >
             Approve
           </button>
