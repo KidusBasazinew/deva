@@ -21,13 +21,25 @@ export async function createPackageDeposit(prevState: any, formData: FormData) {
   const { user } = await checkAuth();
   if (!user) return { error: "Not authenticated" };
 
+  // Initialize Appwrite client first
+  const { databases, storage } = await createAdminClient();
+
+  // Check for existing deposit
+  const existing = await databases.listDocuments(
+    process.env.NEXT_PUBLIC_APPWRITE_DATABASE!,
+    process.env.NEXT_PUBLIC_APPWRITE_COLLECTION!,
+    [Query.equal("userId", user.id), Query.equal("isWithdrawn", false)]
+  );
+
+  if (existing.documents.length > 0) {
+    return { error: "You already have an active deposit" };
+  }
+
   const amount = Number(formData.get("amount"));
   const imageFile = formData.get("deposit-proof") as File;
 
   if (isNaN(amount)) return { error: "Invalid amount" };
   if (!imageFile) return { error: "Deposit proof required" };
-
-  const { databases, storage } = await createAdminClient();
 
   try {
     // Upload image
@@ -123,15 +135,22 @@ export async function getDeposits() {
     [Query.equal("userId", user.id), Query.equal("isWithdrawn", false)]
   );
 
-  return response.documents.map((deposit) => ({
-    ...deposit,
-    currentValue: calculateCurrentValue(
-      deposit.amount, // This now includes referral bonuses
-      new Date(deposit.startDate),
-      deposit.interestRate
-    ),
-  }));
+  // Return only the first deposit
+  const deposit = response.documents[0];
+  if (!deposit) return [];
+
+  return [
+    {
+      ...deposit,
+      currentValue: calculateCurrentValue(
+        deposit.amount,
+        new Date(deposit.startDate),
+        deposit.interestRate
+      ),
+    },
+  ];
 }
+
 function calculateCurrentValue(
   amount: number,
   startDate: Date,
@@ -189,7 +208,7 @@ export async function incrementDeposit(userId: string, amount: number) {
   );
 
   if (deposits.documents.length === 0) {
-    // Create new deposit if none exists
+    // If no deposit exists, create new one with referral bonus
     return await databases.createDocument(
       process.env.NEXT_PUBLIC_APPWRITE_DATABASE!,
       process.env.NEXT_PUBLIC_APPWRITE_COLLECTION!,
@@ -200,16 +219,21 @@ export async function incrementDeposit(userId: string, amount: number) {
         startDate: new Date().toISOString(),
         interestRate: HOURLY_INTEREST_RATE,
         isWithdrawn: false,
+        type: "referral_bonus",
       }
     );
   }
 
-  // Update existing deposit
+  // Update existing deposit with referral bonus
   const deposit = deposits.documents[0];
   return await databases.updateDocument(
     process.env.NEXT_PUBLIC_APPWRITE_DATABASE!,
     process.env.NEXT_PUBLIC_APPWRITE_COLLECTION!,
     deposit.$id,
-    { amount: deposit.amount + amount }
+    {
+      amount: deposit.amount + amount,
+      // Preserve the original type if it's a regular deposit
+      type: deposit.type === "regular" ? "regular" : "referral_bonus",
+    }
   );
 }
