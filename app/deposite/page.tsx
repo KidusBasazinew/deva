@@ -8,6 +8,8 @@ import {
   withdrawDeposit,
 } from "../actions/deposite";
 import { useAuth } from "@/context/authContext";
+import { createAdminClient } from "@/config/appwrite";
+import { Query } from "node-appwrite";
 
 const packages = [
   { amount: 100, label: "Starter Package" },
@@ -24,6 +26,7 @@ export default function DepositPage() {
   const [deposits, setDeposits] = useState<any[]>([]);
   const [selectedPackage, setSelectedPackage] = useState<number>(100);
   const [bankAccount, setBankAccount] = useState("");
+  const [withdrawingId, setWithdrawingId] = useState<string | null>(null); // Track ongoing withdrawals
 
   useEffect(() => {
     if (currentUser) {
@@ -37,13 +40,41 @@ export default function DepositPage() {
       return;
     }
 
-    const result = await withdrawDeposit(depositId, bankAccount);
-    if (result.success) {
-      setDeposits((prev) => prev.filter((d) => d.$id !== depositId));
-    } else {
-      alert(result.error);
+    setWithdrawingId(depositId); // Disable button during process
+    try {
+      const result = await withdrawDeposit(depositId, bankAccount);
+      if (result.success) {
+        // Refresh withdrawals list instead of deposits
+        alert("Withdrawal request submitted for approval!");
+        setBankAccount("");
+      } else {
+        alert(result.error);
+      }
+    } finally {
+      setWithdrawingId(null);
     }
   };
+
+  // Add this new section to show pending withdrawals
+  const [pendingWithdrawals, setPendingWithdrawals] = useState<any[]>([]);
+
+  useEffect(() => {
+    const fetchPendingWithdrawals = async () => {
+      if (currentUser) {
+        const { databases } = await createAdminClient();
+        const response = await databases.listDocuments(
+          process.env.NEXT_PUBLIC_APPWRITE_DATABASE!,
+          process.env.NEXT_PUBLIC_APPWRITE_WITHDRAWN_COLLECTION!,
+          [
+            Query.equal("userId", currentUser.id),
+            Query.equal("status", "pending"),
+          ]
+        );
+        setPendingWithdrawals(response.documents);
+      }
+    };
+    fetchPendingWithdrawals();
+  }, [currentUser]);
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-100">
@@ -110,7 +141,7 @@ export default function DepositPage() {
                 <div key={deposit.$id} className="border p-4 rounded">
                   <div className="flex justify-between items-center">
                     <div>
-                      <p>Initial Amount: ${deposit.amount.toFixed(2)}</p>
+                      <p>Initial Amount: ${deposit.initialAmount.toFixed(2)}</p>
                       <p>Current Value: ${deposit.currentValue.toFixed(2)}</p>
                       <p className="text-sm text-gray-500">
                         Created:{" "}
@@ -127,17 +158,44 @@ export default function DepositPage() {
                       />
                       <button
                         onClick={() => handleWithdraw(deposit.$id)}
-                        disabled={!bankAccount.trim()}
+                        disabled={
+                          !bankAccount.trim() || withdrawingId === deposit.$id
+                        }
                         className={`mt-2 p-2 rounded text-white ${
-                          bankAccount.trim()
+                          bankAccount.trim() && withdrawingId !== deposit.$id
                             ? "bg-green-500 hover:bg-green-600"
                             : "bg-gray-300"
                         }`}
                       >
-                        Withdraw
+                        {withdrawingId === deposit.$id
+                          ? "Processing..."
+                          : "Withdraw"}
                       </button>
                     </div>
                   </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Add Pending Withdrawals Section */}
+        <div className="border-t pt-4 mt-4">
+          <h2 className="text-xl font-bold mb-4">Pending Withdrawals</h2>
+          {pendingWithdrawals.length === 0 ? (
+            <p>No pending withdrawal requests</p>
+          ) : (
+            <div className="space-y-4">
+              {pendingWithdrawals.map((withdrawal) => (
+                <div key={withdrawal.$id} className="border p-4 rounded">
+                  <p>Amount: ${withdrawal.amount.toFixed(2)}</p>
+                  <p className="text-sm text-gray-500">
+                    Requested:{" "}
+                    {new Date(withdrawal.createdAt).toLocaleDateString()}
+                  </p>
+                  <p className="text-sm text-yellow-600">
+                    Status: Pending Approval
+                  </p>
                 </div>
               ))}
             </div>

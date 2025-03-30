@@ -5,23 +5,24 @@ import { createAdminClient } from "../../config/appwrite";
 import { ID, Models, Query } from "appwrite";
 
 const HOURLY_INTEREST_RATE = 0.1; // 0.1% per hour
-const LOCK_PERIOD_DAYS = 0;
+const LOCK_PERIOD_SECONDS = 3; // 3-second withdrawal lock for testing
 
 export interface Deposit extends Models.Document {
   amount: number;
+  initialAmount: number;
+  totalWithdrawn: number;
   startDate: string;
   interestRate: number;
   userId: string;
   isWithdrawn: boolean;
-  type?: "regular" | "referral_bonus"; // Add this
-  referredUser?: string; // Add this
+  type?: "regular" | "referral_bonus";
+  referredUser?: string;
 }
 
 export async function createPackageDeposit(prevState: any, formData: FormData) {
   const { user } = await checkAuth();
   if (!user) return { error: "Not authenticated" };
 
-  // Initialize Appwrite client first
   const { databases, storage } = await createAdminClient();
 
   // Check for existing deposit
@@ -42,14 +43,12 @@ export async function createPackageDeposit(prevState: any, formData: FormData) {
   if (!imageFile) return { error: "Deposit proof required" };
 
   try {
-    // Upload image
     const imageResponse = await storage.createFile(
       process.env.NEXT_PUBLIC_APPWRITE_BUCKET_ID!,
       ID.unique(),
       imageFile
     );
 
-    // Create pending deposit
     await databases.createDocument(
       process.env.NEXT_PUBLIC_APPWRITE_DATABASE!,
       process.env.NEXT_PUBLIC_APPWRITE_PENDING_COLLECTION!,
@@ -78,50 +77,14 @@ export async function approveDepositRequest(userId: string, amount: number) {
     {
       userId,
       amount,
+      initialAmount: amount,
+      totalWithdrawn: 0,
       startDate: new Date().toISOString(),
       interestRate: HOURLY_INTEREST_RATE,
       isWithdrawn: false,
       type: "regular",
     } as Deposit
   );
-}
-
-export async function createDeposit(prevState: any, formData: FormData) {
-  const { user } = await checkAuth();
-  if (!user) return { error: "Not authenticated" };
-
-  const amount = Number(formData.get("amount"));
-  if (isNaN(amount) || amount <= 0) return { error: "Invalid amount" };
-
-  const { databases } = await createAdminClient();
-
-  //("main","deposites",ID.unique(),
-  // {
-  //   userId: user.id,
-  //   amount,
-  //   startDate: new Date().toISOString(),
-  //   interestRate: HOURLY_INTEREST_RATE,
-  //   isWithdrawn: false,
-  // } as Deposit)
-  try {
-    await databases.createDocument(
-      process.env.NEXT_PUBLIC_APPWRITE_DATABASE!, // Your database ID
-      process.env.NEXT_PUBLIC_APPWRITE_COLLECTION!, // Collection ID
-      ID.unique(),
-      {
-        userId: user.id,
-        amount,
-        startDate: new Date().toISOString(),
-        interestRate: HOURLY_INTEREST_RATE,
-        isWithdrawn: false,
-      } as Deposit
-    );
-
-    return { success: true, error: "" };
-  } catch (error) {
-    console.error("Deposit error:", error);
-    return { error: "Failed to create deposit" };
-  }
 }
 
 export async function getDeposits() {
@@ -135,7 +98,6 @@ export async function getDeposits() {
     [Query.equal("userId", user.id), Query.equal("isWithdrawn", false)]
   );
 
-  // Return only the first deposit
   const deposit = response.documents[0];
   if (!deposit) return [];
 
@@ -145,7 +107,8 @@ export async function getDeposits() {
       currentValue: calculateCurrentValue(
         deposit.amount,
         new Date(deposit.startDate),
-        deposit.interestRate
+        deposit.interestRate,
+        deposit.totalWithdrawn
       ),
     },
   ];
@@ -154,53 +117,88 @@ export async function getDeposits() {
 function calculateCurrentValue(
   amount: number,
   startDate: Date,
-  interestRate: number
+  interestRate: number,
+  totalWithdrawn: number
 ) {
   const now = new Date();
   const hoursElapsed = Math.floor(
     (now.getTime() - startDate.getTime()) / 1000 / 3600
   );
-  return amount * Math.pow(1 + interestRate / 100, hoursElapsed);
+  const accrued = amount * Math.pow(1 + interestRate / 100, hoursElapsed);
+  return accrued - totalWithdrawn;
 }
 
 export async function withdrawDeposit(depositId: string, bankAccount: string) {
   const { databases } = await createAdminClient();
-  const deposit = await databases.getDocument(
-    process.env.NEXT_PUBLIC_APPWRITE_DATABASE!,
-    process.env.NEXT_PUBLIC_APPWRITE_COLLECTION!,
-    depositId
-  );
 
-  const startDate = new Date(deposit.startDate);
-  const lockEnd = new Date(startDate);
-  lockEnd.setDate(lockEnd.getDate() + LOCK_PERIOD_DAYS);
+  try {
+    const deposit = await databases.getDocument(
+      process.env.NEXT_PUBLIC_APPWRITE_DATABASE!,
+      process.env.NEXT_PUBLIC_APPWRITE_COLLECTION!,
+      depositId
+    );
 
-  if (new Date() < lockEnd) {
-    return { error: "Deposit is still locked for withdrawal" };
-  }
-
-  // Create withdrawal request
-  await databases.createDocument(
-    process.env.NEXT_PUBLIC_APPWRITE_DATABASE!,
-    process.env.NEXT_PUBLIC_APPWRITE_WITHDRAWN_COLLECTION!, // New collection
-    ID.unique(),
-    {
-      userId: deposit.userId,
-      depositId: deposit.$id,
-      bankAccount,
-      amount: deposit.amount,
-      createdAt: new Date().toISOString(),
-      status: "pending",
+    if (!deposit.amount || !deposit.startDate) {
+      return { error: "Invalid deposit data" };
     }
-  );
 
-  return { success: true };
+    const currentValue = calculateCurrentValue(
+      deposit.amount,
+      new Date(deposit.startDate),
+      deposit.interestRate,
+      deposit.totalWithdrawn
+    );
+
+    const startDate = new Date(deposit.startDate);
+    const lockEnd = new Date(startDate.getTime() + 3000);
+
+    if (new Date() < lockEnd) {
+      return { error: "Withdrawals locked for first 3 seconds" };
+    }
+
+    const secondsSinceLockEnd = Math.ceil(
+      (Date.now() - lockEnd.getTime()) / 1000
+    );
+    const daysSinceLockEnd = Math.floor(secondsSinceLockEnd / 86400);
+
+    const maxDailyAllowance = deposit.initialAmount * 0.1;
+    const totalAllowance = maxDailyAllowance * (daysSinceLockEnd + 1);
+    const availableFromBalance = currentValue - deposit.totalWithdrawn;
+
+    const availableToWithdraw = Math.min(
+      totalAllowance - deposit.totalWithdrawn,
+      availableFromBalance
+    );
+
+    if (availableToWithdraw <= 0) {
+      return { error: "No available funds to withdraw right now" };
+    }
+
+    // Only create withdrawal document without updating deposit
+    await databases.createDocument(
+      process.env.NEXT_PUBLIC_APPWRITE_DATABASE!,
+      process.env.NEXT_PUBLIC_APPWRITE_WITHDRAWN_COLLECTION!,
+      ID.unique(),
+      {
+        userId: deposit.userId,
+        depositId: deposit.$id,
+        bankAccount,
+        amount: availableToWithdraw,
+        createdAt: new Date().toISOString(),
+        status: "pending",
+      }
+    );
+
+    return { success: true };
+  } catch (error) {
+    console.error("Withdrawal error:", error);
+    return { error: "Failed to process withdrawal" };
+  }
 }
 
 export async function incrementDeposit(userId: string, amount: number) {
   const { databases } = await createAdminClient();
 
-  // Find active deposit
   const deposits = await databases.listDocuments<Deposit>(
     process.env.NEXT_PUBLIC_APPWRITE_DATABASE!,
     process.env.NEXT_PUBLIC_APPWRITE_COLLECTION!,
@@ -208,7 +206,6 @@ export async function incrementDeposit(userId: string, amount: number) {
   );
 
   if (deposits.documents.length === 0) {
-    // If no deposit exists, create new one with referral bonus
     return await databases.createDocument(
       process.env.NEXT_PUBLIC_APPWRITE_DATABASE!,
       process.env.NEXT_PUBLIC_APPWRITE_COLLECTION!,
@@ -216,6 +213,8 @@ export async function incrementDeposit(userId: string, amount: number) {
       {
         userId,
         amount,
+        initialAmount: amount,
+        totalWithdrawn: 0,
         startDate: new Date().toISOString(),
         interestRate: HOURLY_INTEREST_RATE,
         isWithdrawn: false,
@@ -224,7 +223,6 @@ export async function incrementDeposit(userId: string, amount: number) {
     );
   }
 
-  // Update existing deposit with referral bonus
   const deposit = deposits.documents[0];
   return await databases.updateDocument(
     process.env.NEXT_PUBLIC_APPWRITE_DATABASE!,
@@ -232,7 +230,6 @@ export async function incrementDeposit(userId: string, amount: number) {
     deposit.$id,
     {
       amount: deposit.amount + amount,
-      // Preserve the original type if it's a regular deposit
       type: deposit.type === "regular" ? "regular" : "referral_bonus",
     }
   );

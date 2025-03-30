@@ -59,6 +59,8 @@ export default function AdminApprovalPage() {
       {
         userId: deposit.userId,
         amount: deposit.amount,
+        initialAmount: deposit.amount,
+        totalWithdrawn: 0,
         startDate: new Date().toISOString(),
         interestRate: HOURLY_INTEREST_RATE,
         isWithdrawn: false,

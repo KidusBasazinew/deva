@@ -58,6 +58,7 @@ async function createUser(
         const inviterUserId = inviter.documents[0].userId;
         await incrementDeposit(inviterUserId, 400);
 
+        // Add missing required fields for Deposit
         await databases.createDocument(
           process.env.NEXT_PUBLIC_APPWRITE_DATABASE!,
           process.env.NEXT_PUBLIC_APPWRITE_COLLECTION!,
@@ -65,6 +66,8 @@ async function createUser(
           {
             userId: inviterUserId,
             amount: 400,
+            initialAmount: 400, // Added required field
+            totalWithdrawn: 0, // Added required field
             startDate: new Date().toISOString(),
             interestRate: 0.1,
             isWithdrawn: false,

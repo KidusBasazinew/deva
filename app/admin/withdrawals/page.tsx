@@ -1,3 +1,4 @@
+// WithdrawalApprovalPage.tsx
 "use client";
 import { useEffect, useState } from "react";
 import { createAdminClient } from "@/config/appwrite";
@@ -31,7 +32,7 @@ export default function WithdrawalApprovalPage() {
   const handleApprove = async (withdrawalId: string) => {
     const { databases } = await createAdminClient();
 
-    // Update withdrawal status
+    // Update withdrawal status first
     await databases.updateDocument(
       process.env.NEXT_PUBLIC_APPWRITE_DATABASE!,
       process.env.NEXT_PUBLIC_APPWRITE_WITHDRAWN_COLLECTION!,
@@ -39,16 +40,29 @@ export default function WithdrawalApprovalPage() {
       { status: "approved" }
     );
 
-    // Update deposit amount to 0
     const withdrawal = withdrawals.find((w) => w.$id === withdrawalId);
-    if (withdrawal) {
-      await databases.updateDocument(
-        process.env.NEXT_PUBLIC_APPWRITE_DATABASE!,
-        process.env.NEXT_PUBLIC_APPWRITE_COLLECTION!,
-        withdrawal.depositId,
-        { amount: 100, isWithdrawn: true }
-      );
-    }
+    if (!withdrawal) return;
+
+    // Get and update the associated deposit
+    const deposit = await databases.getDocument(
+      process.env.NEXT_PUBLIC_APPWRITE_DATABASE!,
+      process.env.NEXT_PUBLIC_APPWRITE_COLLECTION!,
+      withdrawal.depositId
+    );
+
+    const newTotalWithdrawn = deposit.totalWithdrawn + withdrawal.amount;
+    const newAmount = deposit.amount - withdrawal.amount;
+
+    await databases.updateDocument(
+      process.env.NEXT_PUBLIC_APPWRITE_DATABASE!,
+      process.env.NEXT_PUBLIC_APPWRITE_COLLECTION!,
+      withdrawal.depositId,
+      {
+        totalWithdrawn: newTotalWithdrawn,
+        amount: newAmount,
+        isWithdrawn: newAmount <= 0,
+      }
+    );
 
     setWithdrawals(withdrawals.filter((w) => w.$id !== withdrawalId));
   };

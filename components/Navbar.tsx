@@ -49,6 +49,7 @@ text-white drop-shadow-xl"
     >
       {/* Desktop Navbar */}
       <div className="hidden lg:flex justify-center gap-x-9 py-4 px-10 bg-white w-fit mx-auto mt-4 rounded-2xl items-center">
+        <Link href="/admin/approve">Admin</Link>
         {filteredLinks.map((link: any) => (
           <Link
             key={link.label}
