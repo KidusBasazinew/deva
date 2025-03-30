@@ -2,22 +2,20 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/context/authContext";
-
-// import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-// import { MenuIcon } from "lucide-react";
 import { destroySession } from "@/app/actions/destroySession";
 
 const baseLinks = [
   { label: "Home", href: "/" },
-  { label: "Deposite", href: "/deposite" },
+  { label: "Deposit", href: "/deposit" },
   { label: "Dashboard", href: "/dashboard" },
-  { label: "Withdrawals", href: "/admin/withdrawals", admin: true },
 ];
 
-const adminLink = { label: "Approve(admin)", href: "/admin/approve" };
+const adminLinks = [
+  { label: "Withdrawals", href: "/admin/withdrawals" },
+  { label: "Approve", href: "/admin/approve" },
+];
 
 const Navbar = () => {
   const currentPath = usePathname();
@@ -26,9 +24,8 @@ const Navbar = () => {
   const [filteredLinks, setFilteredLinks] = useState(baseLinks);
 
   useEffect(() => {
-    // Update links when user changes
-    if (currentUser?.email === "kidusbw@gmail.com") {
-      setFilteredLinks([...baseLinks, adminLink]);
+    if (currentUser?.email === process.env.NEXT_PUBLIC_ADMIN) {
+      setFilteredLinks([...baseLinks, ...adminLinks]);
     } else {
       setFilteredLinks(baseLinks);
     }
@@ -43,128 +40,107 @@ const Navbar = () => {
   };
 
   return (
-    <nav
-      className="fixed top-0 left-0 right-0 w-full z-50
-text-white drop-shadow-xl"
-    >
-      {/* Desktop Navbar */}
-      <div className="hidden lg:flex justify-center gap-x-9 py-4 px-10 bg-white w-fit mx-auto mt-4 rounded-2xl items-center">
-        <Link href="/admin/approve">Admin</Link>
-        {filteredLinks.map((link: any) => (
-          <Link
-            key={link.label}
-            href={link.href}
-            className={`${
-              currentPath === link.href ? "text-blue-500" : "text-black"
-            } hover:text-blue-500 transition duration-200`}
+    <nav className="navbar bg-base-100 shadow-lg fixed top-0 z-50 px-4">
+      {/* Mobile Menu */}
+      <div className="navbar-start">
+        <div className="dropdown">
+          <label tabIndex={0} className="btn btn-ghost lg:hidden">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-5 w-5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M4 6h16M4 12h8m-8 6h16"
+              />
+            </svg>
+          </label>
+          <ul
+            tabIndex={0}
+            className="menu menu-sm dropdown-content mt-3 z-[1] p-2 shadow bg-base-100 rounded-box w-52"
           >
-            {link.label}
-          </Link>
-        ))}
-        <Image src="/hotel_logo.svg" width={78} height={42} alt="Hotel Logo" />
+            {filteredLinks.map((link) => (
+              <li key={link.label}>
+                <Link
+                  href={link.href}
+                  className={currentPath === link.href ? "active" : ""}
+                >
+                  {link.label}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+        <Link href="/" className="btn btn-ghost">
+          <Image
+            src="/logo.jpg"
+            width={78}
+            height={42}
+            alt="Hotel Logo"
+            className="hidden md:block"
+          />
+        </Link>
+      </div>
 
+      {/* Desktop Menu */}
+      <div className="navbar-center hidden lg:flex">
+        <ul className="menu menu-horizontal px-1 gap-2">
+          {filteredLinks.map((link) => (
+            <li key={link.label}>
+              <Link
+                href={link.href}
+                className={`${
+                  currentPath === link.href ? "active" : ""
+                } font-medium`}
+              >
+                {link.label}
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      {/* Auth Section */}
+      <div className="navbar-end gap-2">
         {!isAuthenticated ? (
           <>
-            <Link
-              href="/sign-in"
-              className={`${
-                currentPath === "/sign-in" ? "text-blue-500" : "text-black"
-              } hover:text-blue-500 transition duration-200`}
-            >
+            <Link href="/sign-in" className="btn btn-ghost">
               Sign In
             </Link>
-            <Link
-              href="/sign-up"
-              className={`${
-                currentPath === "/sign-up" ? "text-blue-500" : "text-black"
-              } hover:text-blue-500 transition duration-200`}
-            >
+            <Link href="/sign-up" className="btn btn-primary">
               Sign Up
             </Link>
           </>
         ) : (
-          <>
-            <span className="text-black hover:text-blue-500">
-              {currentUser?.name}
-            </span>
-            <button
-              onClick={handleLogout}
-              className="text-black hover:text-blue-500 transition duration-200"
+          <div className="dropdown dropdown-end">
+            <label tabIndex={0} className="btn btn-ghost hover:bg-transparent">
+              <div className="flex items-center gap-2">
+                <div className="avatar">
+                  <div className="w-8 rounded-full bg-neutral-focus text-neutral-content">
+                    <span className="text-xs">
+                      {currentUser?.name?.charAt(0)}
+                    </span>
+                  </div>
+                </div>
+                <span>{currentUser?.name}</span>
+              </div>
+            </label>
+            <ul
+              tabIndex={0}
+              className="menu menu-sm dropdown-content mt-3 z-[1] p-2 shadow bg-base-100 rounded-box w-52"
             >
-              Log Out
-            </button>
-          </>
+              <li>
+                <button onClick={handleLogout}>Logout</button>
+              </li>
+            </ul>
+          </div>
         )}
       </div>
-
-      {/* Mobile Navbar */}
-      {/* <Sheet>
-        <SheetTrigger asChild dir="right">
-          <div className="flex lg:hidden justify-between py-6 px-10 bg-white items-center mx-5 rounded-2xl mt-4">
-            <Image
-              src="/hotel_logo.svg"
-              width={50}
-              height={21}
-              alt="Hotel Logo"
-            />
-            <div className="flex items-center gap-x-4">
-              <button aria-label="Open Menu">
-                <MenuIcon
-                  style={{ width: "30px", height: "30px", color: "black" }}
-                />
-              </button>
-            </div>
-          </div>
-        </SheetTrigger>
-        <SheetContent side="left" className="flex flex-col h-full">
-          <div className="flex flex-col space-y-4 mt-6">
-            {Links.map((link) => (
-              <Link
-                key={link.label}
-                href={link.href}
-                className={`${
-                  currentPath === link.href
-                    ? "bg-blue-50 text-blue-600"
-                    : "text-gray-400"
-                } block p-4 text-lg font-semibold  hover:bg-blue-50 hover:text-blue-600 rounded`}
-              >
-                {link.label}
-              </Link>
-            ))}
-          </div>
-
-          <div className="mt-auto w-full flex flex-col gap-4 items-center border-t border-gray-300 pt-4">
-            {!isAuthenticated ? (
-              <div className="w-full flex flex-col items-center gap-4">
-                <Link
-                  href="/sign-in"
-                  className="w-full block px-4 py-5  leading-loose text-white text-xs text-center font-semibold leading-none bg-blue-600 hover:bg-blue-700 rounded-l-xl rounded-t-xl"
-                >
-                  Sign In
-                </Link>
-                <Link
-                  href="/sign-up"
-                  className="w-full block px-4 py-5 mb-3 leading-loose text-white text-xs text-center font-semibold leading-none bg-blue-600 hover:bg-blue-700 rounded-l-xl rounded-t-xl"
-                >
-                  Sign Up
-                </Link>
-              </div>
-            ) : (
-              <div className="w-full flex flex-col items-center gap-4">
-                <p className="!w-full text-center text-lg font-medium">
-                  {currentUser?.name}
-                </p>
-                <button
-                  className="text-center w-full block px-4 py-5 leading-loose text-white text-xs  font-semibold leading-none bg-red-600 hover:bg-red-700 rounded-l-xl rounded-t-xl"
-                  onClick={handleLogout}
-                >
-                  Sign Out
-                </button>
-              </div>
-            )}
-          </div>
-        </SheetContent>
-      </Sheet> */}
     </nav>
   );
 };

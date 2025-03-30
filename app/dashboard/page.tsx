@@ -1,4 +1,3 @@
-// components/ReferralDashboard.tsx
 "use client";
 
 import { useEffect, useState } from "react";
@@ -15,7 +14,6 @@ export default function ReferralDashboard() {
       const { user } = await checkAuth();
       if (!user) return;
 
-      // Get user's referral code
       const { databases } = await createAdminClient();
       const users = await databases.listDocuments(
         process.env.NEXT_PUBLIC_APPWRITE_DATABASE!,
@@ -27,7 +25,6 @@ export default function ReferralDashboard() {
         setReferralCode(users.documents[0].referralCode);
       }
 
-      // Get referral bonuses
       const deposits = await databases.listDocuments(
         process.env.NEXT_PUBLIC_APPWRITE_DATABASE!,
         process.env.NEXT_PUBLIC_APPWRITE_COLLECTION!,
@@ -43,43 +40,70 @@ export default function ReferralDashboard() {
   const referralLink = `${window.location.origin}/sign-up?referral=${referralCode}`;
 
   return (
-    <div className="max-w-md mx-auto p-6 bg-white rounded-lg shadow-md">
-      <h2 className="text-2xl font-bold mb-4">Your Referral Dashboard</h2>
+    <div className="card bg-base-100 shadow-xl w-full max-w-2xl mx-auto">
+      {" "}
+      {/* Updated width */}
+      <div className="card-body">
+        <h2 className="card-title text-2xl mb-4">Your Referral Dashboard</h2>
 
-      <div className="mb-4">
-        <label className="block text-sm font-medium mb-2">
-          Your Referral Code:
-        </label>
-        <div className="p-3 bg-gray-100 rounded-md">{referralCode}</div>
-      </div>
+        {/* <div className="form-control w-full">
+          
+          
+          <label className="label">
+            <span className="label-text">Your Referral Code</span>
+          </label>
+          <div className="badge badge-info badge-lg p-4 text-lg w-full justify-center">
+            {referralCode}
+          </div>
+        </div> */}
 
-      <div className="mb-6">
-        <label className="block text-sm font-medium mb-2">
-          Your Referral Link:
-        </label>
-        <div className="flex gap-2">
-          <input
-            type="text"
-            value={referralLink}
-            className="flex-1 p-2 bg-gray-100 rounded-md"
-            readOnly
-          />
-          <button
-            onClick={() => navigator.clipboard.writeText(referralLink)}
-            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-          >
-            Copy
-          </button>
+        <div className="form-control w-full">
+          {" "}
+          {/* Added w-full */}
+          <label className="label">
+            <span className="label-text">Your Referral Link</span>
+          </label>
+          <div className="join w-full">
+            {" "}
+            {/* Added w-full */}
+            <input
+              type="text"
+              value={referralLink}
+              className="input input-bordered join-item w-full" /* Ensured full width */
+              readOnly
+            />
+            <button
+              onClick={() => navigator.clipboard.writeText(referralLink)}
+              className="btn btn-primary join-item"
+            >
+              Copy
+            </button>
+          </div>
         </div>
-      </div>
 
-      <div className="bg-green-100 p-4 rounded-md">
-        <h3 className="font-medium text-green-800">
-          Total Referral Bonus: ${totalBonus}
-        </h3>
-        <p className="text-sm text-green-700 mt-1">
-          Each successful referral adds $400 to your deposits
-        </p>
+        <div className="alert alert-success mt-4 w-full">
+          {" "}
+          {/* Added w-full */}
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="stroke-current shrink-0 h-6 w-6"
+            fill="none"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="2"
+              d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+            />
+          </svg>
+          <div className="w-full">
+            <h3 className="font-bold">Total Referral Bonus: ${totalBonus}</h3>
+            <div className="text-xs">
+              Each successful referral adds $400 to your deposits
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
