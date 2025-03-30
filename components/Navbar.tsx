@@ -78,7 +78,7 @@ const Navbar = () => {
         </div>
         <Link href="/" className="btn btn-ghost">
           <Image
-            src="/logo.jpg"
+            src="/logo.png"
             width={78}
             height={42}
             alt="Hotel Logo"
