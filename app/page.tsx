@@ -29,7 +29,8 @@ export default function HomePage() {
         <div className="text-center mb-16">
           <h2 className="text-4xl font-bold mb-6">Why Partner with Us?</h2>
           <p className="text-lg text-gray-600">
-            We don't just seek collaborations—we build lasting relationships
+            We don&apos;t just seek collaborations—we build lasting
+            relationships
           </p>
         </div>
 
@@ -151,7 +152,7 @@ export default function HomePage() {
         {/* CTA Section */}
         <div className="text-center py-12 bg-base-200 rounded-2xl">
           <h2 className="text-3xl font-bold mb-6">
-            Let's Build Something Extraordinary
+            Let&apos;s Build Something Extraordinary
           </h2>
           <p className="text-lg mb-8 max-w-2xl mx-auto">
             Join our forward-thinking community that values success, respect,

@@ -1,13 +1,12 @@
 "use client";
-
 import { useEffect, useState } from "react";
 import { createAdminClient } from "@/config/appwrite";
 import { Query } from "appwrite";
 import checkAuth from "@/app/actions/checkAuth";
 
 export default function ReferralDashboard() {
-  const [referralCode, setReferralCode] = useState("");
   const [totalBonus, setTotalBonus] = useState(0);
+  const [referralLink, setReferralLink] = useState("");
 
   useEffect(() => {
     const fetchData = async () => {
@@ -22,7 +21,9 @@ export default function ReferralDashboard() {
       );
 
       if (users.documents.length > 0) {
-        setReferralCode(users.documents[0].referralCode);
+        const code = users.documents[0].referralCode;
+        // Directly use the code without state
+        setReferralLink(`${window.location.origin}/sign-up?referral=${code}`);
       }
 
       const deposits = await databases.listDocuments(
@@ -37,39 +38,20 @@ export default function ReferralDashboard() {
     fetchData();
   }, []);
 
-  const referralLink = `${window.location.origin}/sign-up?referral=${referralCode}`;
-
   return (
     <div className="card bg-base-100 shadow-xl w-full max-w-2xl mx-auto">
-      {" "}
-      {/* Updated width */}
       <div className="card-body">
         <h2 className="card-title text-2xl mb-4">Your Referral Dashboard</h2>
 
-        {/* <div className="form-control w-full">
-          
-          
-          <label className="label">
-            <span className="label-text">Your Referral Code</span>
-          </label>
-          <div className="badge badge-info badge-lg p-4 text-lg w-full justify-center">
-            {referralCode}
-          </div>
-        </div> */}
-
         <div className="form-control w-full">
-          {" "}
-          {/* Added w-full */}
           <label className="label">
             <span className="label-text">Your Referral Link</span>
           </label>
           <div className="join w-full">
-            {" "}
-            {/* Added w-full */}
             <input
               type="text"
               value={referralLink}
-              className="input input-bordered join-item w-full" /* Ensured full width */
+              className="input input-bordered join-item w-full"
               readOnly
             />
             <button
@@ -82,8 +64,6 @@ export default function ReferralDashboard() {
         </div>
 
         <div className="alert alert-success mt-4 w-full">
-          {" "}
-          {/* Added w-full */}
           <svg
             xmlns="http://www.w3.org/2000/svg"
             className="stroke-current shrink-0 h-6 w-6"

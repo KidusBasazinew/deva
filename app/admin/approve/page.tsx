@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { createAdminClient } from "@/config/appwrite";
 import { ID, Query } from "appwrite";
+import Image from "next/image";
 
 interface PendingDeposit {
   $id: string;
@@ -40,7 +41,11 @@ export default function AdminApprovalPage() {
   }, []);
 
   const getImageUrl = (imageId: string) => {
-    return `${process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT}/storage/buckets/${process.env.NEXT_PUBLIC_APPWRITE_BUCKET_ID}/files/${imageId}/preview?project=${process.env.NEXT_PUBLIC_APPWRITE_PROJECT}`;
+    try {
+      return `${process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT}/storage/buckets/${process.env.NEXT_PUBLIC_APPWRITE_BUCKET_ID}/files/${imageId}/preview?project=${process.env.NEXT_PUBLIC_APPWRITE_PROJECT}`;
+    } catch {
+      return "/fallback-image.jpg"; // Add a fallback image
+    }
   };
 
   const handleApprove = async (deposit: PendingDeposit) => {
@@ -83,10 +88,17 @@ export default function AdminApprovalPage() {
       <h1 className="text-2xl mb-4">Pending Deposits</h1>
       {pendingDeposits.map((deposit) => (
         <div key={deposit.$id} className="border p-4 mb-4">
-          <img
+          <Image
+            width={400}
+            height={400}
             src={getImageUrl(deposit.imageId)}
             alt="Deposit proof"
             className="w-64 h-64 object-cover"
+            // Add these props for external images
+            unoptimized
+            onError={(e) => {
+              (e.target as HTMLImageElement).style.display = "none";
+            }}
           />
           <div className="mt-2">
             {/* Safe number formatting with fallback */}

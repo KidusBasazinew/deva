@@ -39,8 +39,8 @@ const ReferralCode = () => {
         </button>
       </div>
       <p className="text-sm text-gray-600">
-        Share this link with friends. When they sign up using your link, you'll
-        get 400 added to your deposit!
+        Share this link with friends. When they sign up using your link,
+        you&apos;ll get 400 added to your deposit!
       </p>
     </div>
   );

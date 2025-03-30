@@ -1,13 +1,13 @@
 "use client";
 import Link from "next/link";
-import React, { useEffect } from "react";
+import React, { useEffect, Suspense } from "react";
 import createUser from "../actions/createUser";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useFormState } from "react-dom";
 
 const initialState = { error: "", success: false };
 
-const SignUp = () => {
+function SignUpForm() {
   const [state, formAction] = useFormState(createUser, initialState);
   const searchParams = useSearchParams();
   const referralCode = searchParams.get("referral");
@@ -128,6 +128,12 @@ const SignUp = () => {
       </div>
     </div>
   );
-};
+}
 
-export default SignUp;
+export default function SignUp() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <SignUpForm />
+    </Suspense>
+  );
+}

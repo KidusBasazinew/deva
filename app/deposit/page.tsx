@@ -4,26 +4,33 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
   createPackageDeposit,
+  Deposit,
   getDeposits,
   withdrawDeposit,
 } from "../actions/deposite";
 import { useAuth } from "@/context/authContext";
 import { createAdminClient } from "@/config/appwrite";
-import { Query } from "node-appwrite";
+import { Models, Query } from "node-appwrite";
 
 const packages = [
   { amount: 100, label: "Starter Package" },
   { amount: 500, label: "Premium Package" },
   { amount: 1000, label: "VIP Package" },
 ];
-
+interface Withdrawal extends Models.Document {
+  amount: number;
+  bankAccount: string;
+  status: "pending" | "approved" | "rejected";
+  userId: string;
+  depositId: string;
+}
 export default function DepositPage() {
   const { currentUser } = useAuth();
   const [state, formAction] = useFormState(createPackageDeposit, {
     error: "",
     success: false,
   });
-  const [deposits, setDeposits] = useState<any[]>([]);
+  const [deposits, setDeposits] = useState<Deposit[]>([]);
   const [selectedPackage, setSelectedPackage] = useState<number>(100);
   const [bankAccount, setBankAccount] = useState("");
   const [withdrawingId, setWithdrawingId] = useState<string | null>(null); // Track ongoing withdrawals
@@ -56,13 +63,15 @@ export default function DepositPage() {
   };
 
   // Add this new section to show pending withdrawals
-  const [pendingWithdrawals, setPendingWithdrawals] = useState<any[]>([]);
+  const [pendingWithdrawals, setPendingWithdrawals] = useState<Withdrawal[]>(
+    []
+  );
 
   useEffect(() => {
     const fetchPendingWithdrawals = async () => {
       if (currentUser) {
         const { databases } = await createAdminClient();
-        const response = await databases.listDocuments(
+        const response = await databases.listDocuments<Withdrawal>(
           process.env.NEXT_PUBLIC_APPWRITE_DATABASE!,
           process.env.NEXT_PUBLIC_APPWRITE_WITHDRAWN_COLLECTION!,
           [

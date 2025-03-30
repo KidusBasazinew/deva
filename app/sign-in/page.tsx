@@ -81,7 +81,7 @@ const SignIn = () => {
           </form>
 
           <div className="text-center mt-6">
-            <span className="text-sm">Don't have an account? </span>
+            <span className="text-sm">Don&apos;t have an account? </span>
             <Link href="/sign-up" className="link link-primary text-sm">
               Sign Up
             </Link>

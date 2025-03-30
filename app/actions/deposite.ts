@@ -1,11 +1,11 @@
 "use server";
-import { cookies } from "next/headers";
+
 import checkAuth from "./checkAuth";
 import { createAdminClient } from "../../config/appwrite";
 import { ID, Models, Query } from "appwrite";
 
 const HOURLY_INTEREST_RATE = 0.1; // 0.1% per hour
-const LOCK_PERIOD_SECONDS = 3; // 3-second withdrawal lock for testing
+// const LOCK_PERIOD_SECONDS = 3; // 3-second withdrawal lock for testing
 
 export interface Deposit extends Models.Document {
   amount: number;
@@ -19,9 +19,17 @@ export interface Deposit extends Models.Document {
   referredUser?: string;
 }
 
-export async function createPackageDeposit(prevState: any, formData: FormData) {
+interface FormState {
+  error: string;
+  success: boolean;
+}
+
+export async function createPackageDeposit(
+  prevState: FormState,
+  formData: FormData
+): Promise<FormState> {
   const { user } = await checkAuth();
-  if (!user) return { error: "Not authenticated" };
+  if (!user) return { error: "Not authenticated", success: false };
 
   const { databases, storage } = await createAdminClient();
 
@@ -33,14 +41,14 @@ export async function createPackageDeposit(prevState: any, formData: FormData) {
   );
 
   if (existing.documents.length > 0) {
-    return { error: "You already have an active deposit" };
+    return { error: "You already have an active deposit", success: false };
   }
 
   const amount = Number(formData.get("amount"));
   const imageFile = formData.get("deposit-proof") as File;
 
-  if (isNaN(amount)) return { error: "Invalid amount" };
-  if (!imageFile) return { error: "Deposit proof required" };
+  if (isNaN(amount)) return { error: "Invalid amount", success: false };
+  if (!imageFile) return { error: "Deposit proof required", success: false };
 
   try {
     const imageResponse = await storage.createFile(
@@ -64,7 +72,7 @@ export async function createPackageDeposit(prevState: any, formData: FormData) {
     return { success: true, error: "" };
   } catch (error) {
     console.error("Deposit error:", error);
-    return { error: "Failed to create deposit" };
+    return { error: "Failed to create deposit", success: false };
   }
 }
 
