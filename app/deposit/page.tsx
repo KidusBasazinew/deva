@@ -148,143 +148,147 @@ export default function DepositPage() {
             <div className="card-body">
               <h2 className="card-title text-3xl mb-6">Investment Plans</h2>
 
-              <form action={formAction}>
-                <div className="grid grid-cols-1 gap-6">
-                  {packages.map((pkg) => (
-                    <div
-                      key={pkg.amount}
-                      className="bg-base-200 p-6 rounded-xl"
-                    >
-                      <div className="flex flex-col md:flex-row justify-between items-start mb-4">
-                        <div>
-                          <input
-                            type="radio"
-                            name="selectedPackage"
-                            value={pkg.amount}
-                            checked={selectedPackage === pkg.amount}
-                            onChange={() => setSelectedPackage(pkg.amount)}
-                            className="mr-2"
-                          />
-                          <label className="text-2xl font-bold">
-                            {pkg.label}
-                          </label>
-
-                          <div className="space-y-2 mt-2">
-                            <div className="flex gap-4">
-                              <span className="font-semibold">Price:</span>
-                              <span className="text-primary">
-                                ETB {pkg.amount.toFixed(2)}
-                              </span>
-                            </div>
-                            <div className="flex gap-4">
-                              <span className="font-semibold">Days:</span>
-                              <span>{pkg.days}</span>
-                            </div>
-                            <div className="flex gap-4">
-                              <span className="font-semibold">
-                                Daily Income:
-                              </span>
-                              <span className="text-secondary">
-                                ETB {pkg.dailyIncome}
-                              </span>
-                            </div>
-                            <div className="flex gap-4">
-                              <span className="font-semibold">
-                                Total Income:
-                              </span>
-                              <span className="text-accent">
-                                ETB {pkg.totalIncome}
-                              </span>
-                            </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {packages.map((pkg) => (
+                  <form
+                    key={pkg.amount}
+                    action={formAction}
+                    className={`card shadow-md transition-all duration-300 ${
+                      selectedPackage === pkg.amount
+                        ? "ring-2 ring-primary ring-offset-2"
+                        : "hover:shadow-xl"
+                    }`}
+                    onClick={() => setSelectedPackage(pkg.amount)}
+                  >
+                    <div className="card-body">
+                      {/* Package Header */}
+                      <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-xl font-bold">{pkg.label}</h3>
+                        {selectedPackage === pkg.amount && (
+                          <div className="badge badge-primary badge-lg">
+                            Selected
                           </div>
+                        )}
+                      </div>
+
+                      {/* Package Details */}
+                      <div className="space-y-3">
+                        <div className="flex justify-between items-center">
+                          <span className="text-gray-500">
+                            Investment Amount
+                          </span>
+                          <span className="font-bold text-primary">
+                            ETB {pkg.amount.toFixed(2)}
+                          </span>
+                        </div>
+
+                        <div className="flex justify-between items-center">
+                          <span className="text-gray-500">Duration</span>
+                          <span className="font-medium">{pkg.days} Days</span>
+                        </div>
+
+                        <div className="flex justify-between items-center">
+                          <span className="text-gray-500">Daily Returns</span>
+                          <span className="font-bold text-secondary">
+                            ETB {pkg.dailyIncome}
+                          </span>
+                        </div>
+
+                        <div className="flex justify-between items-center">
+                          <span className="text-gray-500">Total Returns</span>
+                          <span className="font-bold text-accent">
+                            ETB {pkg.totalIncome}
+                          </span>
                         </div>
                       </div>
 
-                      {/* Show file input only for the selected package */}
+                      {/* File Input */}
                       {selectedPackage === pkg.amount && (
-                        <div className="form-control mt-4 w-full">
-                          <label className="label">
-                            <span className="label-text">
-                              Upload Payment Proof
-                            </span>
-                          </label>
+                        <div className="mt-6 space-y-4">
+                          <div className="form-control">
+                            <label className="label">
+                              <span className="label-text">
+                                Upload Payment Proof
+                              </span>
+                            </label>
+                            <input
+                              type="file"
+                              name="deposit-proof"
+                              accept="image/*"
+                              className="file-input file-input-bordered file-input-primary w-full"
+                              required
+                            />
+                          </div>
+
                           <input
-                            type="file"
-                            name="deposit-proof"
-                            accept="image/*"
-                            className="file-input file-input-bordered w-full"
-                            required
+                            type="hidden"
+                            name="amount"
+                            value={pkg.amount}
                           />
+
+                          <button
+                            type="submit"
+                            className="btn btn-primary w-full gap-2"
+                          >
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              className="h-5 w-5"
+                              viewBox="0 0 20 20"
+                              fill="currentColor"
+                            >
+                              <path
+                                fillRule="evenodd"
+                                d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2H8a2 2 0 01-2-2v-4zm6 4a2 2 0 100-4 2 2 0 000 4z"
+                                clipRule="evenodd"
+                              />
+                            </svg>
+                            Invest Now
+                          </button>
                         </div>
                       )}
-
-                      {/* Hidden input to submit the selected package */}
-                      <input
-                        type="hidden"
-                        name="amount"
-                        value={selectedPackage}
-                      />
-                      <button
-                        type="submit"
-                        className="btn btn-primary mt-4 md:mt-0 px-8 py-3"
-                      >
-                        Buy Now
-                      </button>
                     </div>
-                  ))}
+                  </form>
+                ))}
+              </div>
+
+              {/* Status Messages */}
+              {state.error && (
+                <div className="alert alert-error mt-6">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="stroke-current shrink-0 h-6 w-6"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  </svg>
+                  <span>{state.error}</span>
                 </div>
+              )}
 
-                {/* ... (keep existing error/success messages) */}
-              </form>
-
-              {/* Active Deposits */}
-              {/* <div className="mt-8">
-                <h3 className="text-xl font-semibold mb-4">Active Deposits</h3>
-                {deposits.length === 0 ? (
-                  <div className="alert alert-info">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="stroke-current shrink-0 h-6 w-6"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth="2"
-                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-                      />
-                    </svg>
-                    <span>No active deposits</span>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {deposits.map((deposit) => (
-                      <div
-                        key={deposit.$id}
-                        className="bg-base-200 p-4 rounded-lg"
-                      >
-                        <div className="flex justify-between items-center">
-                          <div>
-                            <p className="font-medium">
-                              Initial Amount: ETB{" "}
-                              {deposit.initialAmount.toFixed(2)}
-                            </p>
-                            <p className="font-medium">
-                              Current Value: ETB{" "}
-                              {deposit.currentValue.toFixed(2)}
-                            </p>
-                            <p className="text-sm">
-                              Started:{" "}
-                              {new Date(deposit.startDate).toLocaleDateString()}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div> */}
+              {state.success && (
+                <div className="alert alert-success mt-6">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="stroke-current shrink-0 h-6 w-6"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  </svg>
+                  <span>Deposit submitted for approval!</span>
+                </div>
+              )}
             </div>
           </div>
         )}
