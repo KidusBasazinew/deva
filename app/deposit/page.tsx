@@ -106,7 +106,7 @@ export default function DepositPage() {
   };
 
   return (
-    <div className="min-h-screen bg-base-200 p-4 mt-12">
+    <div className="min-h-screen bg-base-200 mt-12">
       <div className="container mx-auto max-w-5xl">
         {/* Navigation Bar */}
         <div className="flex justify-center items-center mb-8 p-4 bg-base-100 rounded-xl shadow-lg border border-base-300">
