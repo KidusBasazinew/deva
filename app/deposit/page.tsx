@@ -11,6 +11,7 @@ import {
 import { useAuth } from "@/context/authContext";
 import { createAdminClient } from "@/config/appwrite";
 import { Models, Query } from "node-appwrite";
+import Image from "next/image";
 
 const packages = [
   {
@@ -109,37 +110,68 @@ export default function DepositPage() {
     <div className="min-h-screen bg-base-200 p-4 mt-12">
       <div className="container mx-auto max-w-5xl">
         {/* Navigation Bar */}
-        <div className="flex justify-between items-center mb-8 p-4 bg-base-100 rounded-lg shadow">
-          <div className="flex gap-4">
+        <div className="flex justify-center items-center mb-8 p-4 bg-base-100 rounded-xl shadow-lg border border-base-300">
+          <div className="flex gap-6">
             <button
-              className={`btn ${
-                activeTab === "deposit" ? "btn-primary" : "btn-ghost"
+              className={`flex flex-col items-center p-4 rounded-xl transition-all duration-300 ${
+                activeTab === "deposit"
+                  ? "bg-blue-800 text-white ring-2 ring-blue-400"
+                  : "bg-base-200 hover:bg-base-300 hover:shadow-md"
               }`}
               onClick={() => setActiveTab("deposit")}
             >
-              Deposit
+              <div className="p-2 bg-white/10 rounded-full mb-2">
+                <Image
+                  src="/deposit.png"
+                  width={48}
+                  height={48}
+                  alt="Deposit"
+                  className="w-12 h-12 object-contain"
+                />
+              </div>
+              <span className="font-semibold text-sm">Deposit</span>
             </button>
+
             <button
-              className={`btn ${
-                activeTab === "active" ? "btn-primary" : "btn-ghost"
+              className={`flex flex-col items-center p-4 rounded-xl transition-all duration-300 ${
+                activeTab === "active"
+                  ? "bg-emerald-800 text-white ring-2 ring-emerald-400"
+                  : "bg-base-200 hover:bg-base-300 hover:shadow-md"
               }`}
               onClick={() => setActiveTab("active")}
             >
-              Active Deposits
+              <div className="p-2 bg-white/10 rounded-full mb-2">
+                <Image
+                  src="/wallet.png"
+                  width={48}
+                  height={48}
+                  alt="Active Deposits"
+                  className="w-12 h-12 object-contain"
+                />
+              </div>
+              <span className="font-semibold text-sm">Active</span>
             </button>
+
             <button
-              className={`btn ${
-                activeTab === "withdraw" ? "btn-primary" : "btn-ghost"
+              className={`flex flex-col items-center p-4 rounded-xl transition-all duration-300 ${
+                activeTab === "withdraw"
+                  ? "bg-purple-800 text-white ring-2 ring-purple-400"
+                  : "bg-base-200 hover:bg-base-300 hover:shadow-md"
               }`}
               onClick={() => setActiveTab("withdraw")}
             >
-              Withdraw
+              <div className="p-2 bg-white/10 rounded-full mb-2">
+                <Image
+                  src="/withdrawal.png"
+                  width={48}
+                  height={48}
+                  alt="Withdraw"
+                  className="w-12 h-12 object-contain"
+                />
+              </div>
+              <span className="font-semibold text-sm">Withdraw</span>
             </button>
-            {/* <button className="btn btn-ghost">Service</button> */}
           </div>
-          {/* <Link href="/" className="btn btn-ghost">
-            ← Back
-          </Link> */}
         </div>
 
         {activeTab === "deposit" && (
