@@ -12,6 +12,15 @@ import { createAdminClient } from "@/config/appwrite";
 import { Models, Query } from "node-appwrite";
 import Image from "next/image";
 
+const banks = [
+  "Commercial Bank of Ethiopia",
+  "Awash Bank",
+  "Dashen Bank",
+  "Abyssinia Bank",
+  "Hibret Bank",
+  "Mobile Money (M-Pesa, etc)",
+];
+
 const quickDepositAmounts = [100, 200, 500, 1000, 2000, 5000];
 
 const packages = [
@@ -46,7 +55,6 @@ const packages = [
 
 interface Withdrawal extends Models.Document {
   amount: number;
-  bankAccount: string;
   status: "pending" | "approved" | "rejected";
   userId: string;
   depositId: string;
@@ -60,7 +68,7 @@ export default function DepositPage() {
   });
   const [deposits, setDeposits] = useState<Deposit[]>([]);
   const [selectedPackage, setSelectedPackage] = useState<number>(380);
-  const [bankAccount, setBankAccount] = useState("");
+  // const [bankAccount, setBankAccount] = useState("");
   const [withdrawingId, setWithdrawingId] = useState<string | null>(null);
   const [pendingWithdrawals, setPendingWithdrawals] = useState<Withdrawal[]>(
     []
@@ -96,17 +104,20 @@ export default function DepositPage() {
   }, [currentUser]);
 
   const handleWithdraw = async () => {
-    if (!bankAccount) {
-      alert("Please enter a bank account number");
-      return;
-    }
+    // if (!bankAccount) {
+    //   alert("Please enter a bank account number");
+    //   return;
+    // }
 
     setWithdrawingId("withdraw");
     try {
-      const result = await withdrawDeposit(deposits[0].$id, bankAccount);
+      const result = await withdrawDeposit(
+        deposits[0].$id,
+        bankName,
+        phoneNumber
+      );
       if (result.success) {
         alert("Withdrawal request submitted for approval!");
-        setBankAccount("");
       } else {
         alert(result.error);
       }
@@ -114,6 +125,9 @@ export default function DepositPage() {
       setWithdrawingId(null);
     }
   };
+
+  const [bankName, setBankName] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
 
   return (
     <div className="min-h-screen bg-base-200 mt-12">
@@ -561,47 +575,133 @@ export default function DepositPage() {
         )}
 
         {activeTab === "withdraw" && (
-          /* Withdrawal Section */
           <div className="card bg-base-100 shadow-xl">
             <div className="card-body">
-              <h2 className="card-title text-3xl mb-6">Withdrawal</h2>
+              <h2 className="card-title text-3xl mb-6">Withdrawal Request</h2>
 
               {/* Withdrawal Form */}
               <div className="bg-base-200 p-6 rounded-xl mb-8">
-                <div className="flex flex-col md:flex-row gap-4 items-center">
-                  <input
-                    type="text"
-                    placeholder="Bank Account Number"
-                    className="input input-bordered w-full md:w-96"
-                    value={bankAccount}
-                    onChange={(e) => setBankAccount(e.target.value)}
-                  />
-                  <button
-                    onClick={handleWithdraw}
-                    disabled={!bankAccount.trim() || !!withdrawingId}
-                    className={`btn btn-accent w-full md:w-auto ${
-                      !bankAccount.trim() ? "btn-disabled" : ""
-                    }`}
-                  >
-                    {withdrawingId ? (
-                      <>
-                        <span className="loading loading-spinner"></span>
-                        Processing...
-                      </>
-                    ) : (
-                      "Request Withdrawal"
-                    )}
-                  </button>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Bank Selection */}
+                  <div className="form-control">
+                    <label className="label">
+                      <span className="label-text flex items-center gap-2">
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          className="h-5 w-5"
+                          viewBox="0 0 24 24"
+                          fill="currentColor"
+                        >
+                          <path d="M12 10.5a1.5 1.5 0 0 1 1.5 1.5v5.25a1.5 1.5 0 0 1-3 0V12a1.5 1.5 0 0 1 1.5-1.5Z" />
+                          <path
+                            fillRule="evenodd"
+                            d="M12 2.25A10.5 10.5 0 0 0 1.5 12.75v6a1.5 1.5 0 0 0 1.5 1.5h18a1.5 1.5 0 0 0 1.5-1.5v-6A10.5 10.5 0 0 0 12 2.25ZM9 7.5A3 3 0 0 1 15 7.5v1.5a3 3 0 0 1-6 0V7.5Z"
+                            clipRule="evenodd"
+                          />
+                        </svg>
+                        Select Bank
+                      </span>
+                    </label>
+                    <select
+                      className="select select-bordered w-full focus:ring-2 focus:ring-primary"
+                      value={bankName}
+                      onChange={(e) => setBankName(e.target.value)}
+                      required
+                    >
+                      <option value="" disabled>
+                        Choose your bank
+                      </option>
+                      {banks.map((bank) => (
+                        <option key={bank} value={bank} className="text-base">
+                          {bank}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Account/Phone Input */}
+                  <div className="form-control">
+                    <label className="label">
+                      <span className="label-text flex items-center gap-2">
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          className="h-5 w-5"
+                          viewBox="0 0 24 24"
+                          fill="currentColor"
+                        >
+                          <path
+                            fillRule="evenodd"
+                            d="M1.5 4.5a3 3 0 0 1 3-3h15a3 3 0 0 1 3 3v15a3 3 0 0 1-3 3h-15a3 3 0 0 1-3-3v-15Zm4.5 4.125a1.125 1.125 0 1 0 0 2.25 1.125 1.125 0 0 0 0-2.25Zm-2.25 1.125a2.25 2.25 0 1 1 4.5 0 2.25 2.25 0 0 1-4.5 0Zm7.5-.75a.75.75 0 0 0 0 1.5h6a.75.75 0 0 0 0-1.5h-6Zm-.75 3.75a.75.75 0 0 1 .75-.75h6a.75.75 0 0 1 0 1.5h-6a.75.75 0 0 1-.75-.75Zm.75 2.25a.75.75 0 0 0 0 1.5h6a.75.75 0 0 0 0-1.5h-6ZM6 12a.75.75 0 0 1 .75-.75h3a.75.75 0 0 1 0 1.5h-3A.75.75 0 0 1 6 12Zm.75 2.25a.75.75 0 0 0 0 1.5h3a.75.75 0 0 0 0-1.5h-3Z"
+                            clipRule="evenodd"
+                          />
+                        </svg>
+                        Account/Phone Number
+                      </span>
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Enter account or phone number"
+                      className="input input-bordered w-full focus:ring-2 focus:ring-primary"
+                      value={phoneNumber}
+                      onChange={(e) => setPhoneNumber(e.target.value)}
+                      required
+                    />
+                  </div>
+
+                  {/* Submit Button */}
+                  <div className="md:col-span-2">
+                    <button
+                      onClick={handleWithdraw}
+                      disabled={!bankName || !phoneNumber || !!withdrawingId}
+                      className="btn btn-primary w-full gap-2 hover:scale-[1.01] transition-transform"
+                    >
+                      {withdrawingId ? (
+                        <>
+                          <span className="loading loading-spinner"></span>
+                          Processing Withdrawal...
+                        </>
+                      ) : (
+                        <>
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            className="h-6 w-6"
+                            viewBox="0 0 24 24"
+                            fill="currentColor"
+                          >
+                            <path
+                              fillRule="evenodd"
+                              d="M12 2.25a.75.75 0 0 1 .75.75v16.19l6.22-6.22a.75.75 0 1 1 1.06 1.06l-7.5 7.5a.75.75 0 0 1-1.06 0l-7.5-7.5a.75.75 0 1 1 1.06-1.06l6.22 6.22V3a.75.75 0 0 1 .75-.75Z"
+                              clipRule="evenodd"
+                            />
+                          </svg>
+                          Request Withdrawal
+                        </>
+                      )}
+                    </button>
+                  </div>
                 </div>
               </div>
 
-              {/* Pending Withdrawals */}
-              <div className="mt-8">
-                <h3 className="text-xl font-semibold mb-4">
-                  Pending Withdrawals
+              {/* Pending Withdrawals Section */}
+              <div className="mt-6">
+                <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-6 w-6"
+                    viewBox="0 0 24 24"
+                    fill="currentColor"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M4.755 10.059a7.5 7.5 0 0 1 12.548-3.364l1.903 1.903h-3.183a.75.75 0 1 0 0 1.5h4.992a.75.75 0 0 0 .75-.75V4.356a.75.75 0 0 0-1.5 0v3.18l-1.9-1.9A9 9 0 0 0 3.306 9.67a.75.75 0 1 0 1.45.388Zm15.408 3.352a.75.75 0 0 0-.919.53 7.5 7.5 0 0 1-12.548 3.364l-1.902-1.903h3.183a.75.75 0 0 0 0-1.5H2.984a.75.75 0 0 0-.75.75v4.992a.75.75 0 0 0 1.5 0v-3.18l1.9 1.9a9 9 0 0 0 15.059-4.035.75.75 0 0 0-.53-.918Z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                  Pending Requests
                 </h3>
+
                 {pendingWithdrawals.length === 0 ? (
-                  <div className="alert alert-info">
+                  <div className="alert alert-info shadow-lg">
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
                       className="stroke-current shrink-0 h-6 w-6"
@@ -615,28 +715,57 @@ export default function DepositPage() {
                         d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
                       />
                     </svg>
-                    <span>No pending withdrawal requests</span>
+                    <span>No pending withdrawal requests found</span>
                   </div>
                 ) : (
-                  <div className="space-y-4">
+                  <div className="space-y-3">
                     {pendingWithdrawals.map((withdrawal) => (
                       <div
                         key={withdrawal.$id}
-                        className="bg-base-200 p-4 rounded-lg"
+                        className="bg-base-200 p-4 rounded-lg shadow-sm hover:shadow-md transition-shadow"
                       >
-                        <div className="flex justify-between items-center">
-                          <div>
-                            <p className="font-medium">
-                              Amount: ETB {withdrawal.amount.toFixed(2)}
+                        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-2">
+                          <div className="space-y-1">
+                            <p className="font-semibold text-lg text-primary">
+                              ETB {withdrawal.amount.toFixed(2)}
                             </p>
-                            <p className="text-sm">
-                              Requested:{" "}
+                            <div className="flex items-center gap-2 text-sm text-gray-500">
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                className="h-4 w-4"
+                                viewBox="0 0 24 24"
+                                fill="currentColor"
+                              >
+                                <path
+                                  fillRule="evenodd"
+                                  d="M6.75 2.25A.75.75 0 0 1 7.5 3v1.5h9V3A.75.75 0 0 1 18 3v1.5h.75a3 3 0 0 1 3 3v11.25a3 3 0 0 1-3 3H5.25a3 3 0 0 1-3-3V7.5a3 3 0 0 1 3-3H6V3a.75.75 0 0 1 .75-.75Zm13.5 9a1.5 1.5 0 0 0-1.5-1.5H5.25a1.5 1.5 0 0 0-1.5 1.5v7.5a1.5 1.5 0 0 0 1.5 1.5h13.5a1.5 1.5 0 0 0 1.5-1.5v-7.5Z"
+                                  clipRule="evenodd"
+                                />
+                              </svg>
                               {new Date(
                                 withdrawal.createdAt
-                              ).toLocaleDateString()}
-                            </p>
+                              ).toLocaleDateString("en-US", {
+                                year: "numeric",
+                                month: "short",
+                                day: "numeric",
+                              })}
+                            </div>
                           </div>
-                          <span className="badge badge-warning">Pending</span>
+                          <span className="badge badge-warning badge-lg px-4 py-3">
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              className="h-4 w-4 mr-2"
+                              viewBox="0 0 24 24"
+                              fill="currentColor"
+                            >
+                              <path
+                                fillRule="evenodd"
+                                d="M4.5 12a1.5 1.5 0 1 1 3 0 1.5 1.5 0 0 1-3 0Zm6 0a1.5 1.5 0 1 1 3 0 1.5 1.5 0 0 1-3 0Zm6 0a1.5 1.5 0 1 1 3 0 1.5 1.5 0 0 1-3 0Z"
+                                clipRule="evenodd"
+                              />
+                            </svg>
+                            Pending Approval
+                          </span>
                         </div>
                       </div>
                     ))}

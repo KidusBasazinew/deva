@@ -136,7 +136,11 @@ function calculateCurrentValue(
   return accrued - totalWithdrawn;
 }
 
-export async function withdrawDeposit(depositId: string, bankAccount: string) {
+export async function withdrawDeposit(
+  depositId: string,
+  bankName: string, // Add bankName parameter
+  phoneNumber: string
+) {
   const { databases } = await createAdminClient();
 
   try {
@@ -190,7 +194,8 @@ export async function withdrawDeposit(depositId: string, bankAccount: string) {
       {
         userId: deposit.userId,
         depositId: deposit.$id,
-        bankAccount,
+        bankName,
+        phoneNumber,
         amount: availableToWithdraw,
         createdAt: new Date().toISOString(),
         status: "pending",

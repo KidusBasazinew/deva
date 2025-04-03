@@ -9,6 +9,8 @@ interface Withdrawal {
   userId: string;
   depositId: string;
   bankAccount: string;
+  bankName: string;
+  phoneNumber: string;
   amount: number;
   status: string;
 }
@@ -74,6 +76,9 @@ export default function WithdrawalApprovalPage() {
         <div key={withdrawal.$id} className="border p-4 mb-4">
           <div className="mb-2">
             <p>Bank Account: {withdrawal.bankAccount}</p>
+            <p>Amount: ${withdrawal.amount.toFixed(2)}</p>
+            <p>Bank: {withdrawal.bankName}</p>
+            <p>Account/Phone: {withdrawal.phoneNumber}</p>
             <p>Amount: ${withdrawal.amount.toFixed(2)}</p>
           </div>
           <button
