@@ -31,9 +31,7 @@ async function createUser(
   try {
     const user = await account.create(ID.unique(), email, password, name);
 
-    // Generate referral code
-    const userReferralCode = user.$id;
-
+    // Create referral document with referralCount
     await databases.createDocument(
       process.env.NEXT_PUBLIC_APPWRITE_DATABASE!,
       process.env.NEXT_PUBLIC_APPWRITE_REFERRAL_COLLECTION!,
@@ -42,7 +40,9 @@ async function createUser(
         userId: user.$id,
         email: user.email,
         name: user.name,
-        referralCode: userReferralCode,
+        referralCode: user.$id,
+        referralCount: 0, // Initialize count
+        referredUsers: "", // Add array to track referrals
       }
     );
 
@@ -55,26 +55,22 @@ async function createUser(
       );
 
       if (inviter.documents.length > 0) {
-        const inviterUserId = inviter.documents[0].userId;
-        await incrementDeposit(inviterUserId, 400);
+        const inviterDoc = inviter.documents[0];
+        const inviterUserId = inviterDoc.userId;
 
-        // Add missing required fields for Deposit
-        await databases.createDocument(
+        // Update inviter's referral count
+        await databases.updateDocument(
           process.env.NEXT_PUBLIC_APPWRITE_DATABASE!,
-          process.env.NEXT_PUBLIC_APPWRITE_COLLECTION!,
-          ID.unique(),
+          process.env.NEXT_PUBLIC_APPWRITE_REFERRAL_COLLECTION!,
+          inviterDoc.$id,
           {
-            userId: inviterUserId,
-            amount: 400,
-            initialAmount: 400, // Added required field
-            totalWithdrawn: 0, // Added required field
-            startDate: new Date().toISOString(),
-            interestRate: 0.1,
-            isWithdrawn: false,
-            type: "referral_bonus",
-            referredUser: user.$id,
-          } as Deposit
+            referralCount: (inviterDoc.referralCount || 0) + 1,
+            referredUsers: (inviterDoc.referredUsers || "") + "," + user.$id, // Append user ID as string
+          }
         );
+
+        // Process bonus using percentage-based system
+        await incrementDeposit(inviterUserId, 400);
       }
     }
 

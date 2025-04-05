@@ -237,34 +237,42 @@ export default function DepositPage() {
           </div>
         </div>
         {activeTab === "quick-deposit" && (
-          <div className="card bg-base-100 shadow-xl mb-8">
+          <div className="card bg-base-200 shadow-2xl mb-12 border border-base-300">
             <div className="card-body">
-              <h2 className="card-title text-3xl mb-6">Quick Deposit</h2>
+              <h2 className="card-title text-3xl font-bold mb-8">
+                💰 Quick Deposit
+              </h2>
 
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-8">
+              {/* Quick Select Buttons */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 mb-10">
                 {quickDepositAmounts.map((amount) => (
                   <button
                     key={amount}
                     type="button"
-                    className={`btn btn-outline h-24 flex flex-col items-center justify-center text-lg ${
+                    className={`btn h-24 flex flex-col items-center justify-center text-lg border-2 transition-all duration-200 ${
                       selectedQuickDeposit === amount
-                        ? "btn-primary !text-white"
-                        : ""
+                        ? "btn-primary text-white"
+                        : "btn-outline hover:scale-105"
                     }`}
                     onClick={() => setSelectedQuickDeposit(amount)}
                   >
                     <span>ETB {amount}</span>
                     {selectedQuickDeposit === amount && (
-                      <span className="text-xs mt-1">Selected</span>
+                      <span className="text-xs mt-1 opacity-75">
+                        ✓ Selected
+                      </span>
                     )}
                   </button>
                 ))}
               </div>
 
+              {/* Upload Form */}
               <form action={formAction} className="space-y-6">
-                <div className="form-control">
+                <div className="form-control w-full">
                   <label className="label">
-                    <span className="label-text">Upload Payment Proof</span>
+                    <span className="label-text text-base-content">
+                      Upload Payment Proof
+                    </span>
                   </label>
                   <input
                     type="file"
@@ -286,7 +294,7 @@ export default function DepositPage() {
 
                 <button
                   type="submit"
-                  className="btn btn-primary w-full gap-2"
+                  className="btn btn-primary w-full text-lg gap-2"
                   disabled={!selectedQuickDeposit || !quickDepositProof}
                 >
                   Deposit Now
@@ -334,6 +342,7 @@ export default function DepositPage() {
             </div>
           </div>
         )}
+
         {activeTab === "deposit" && (
           /* Deposit Section */
           <div className="card bg-base-100 shadow-xl mb-8">

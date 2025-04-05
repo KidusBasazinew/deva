@@ -5,7 +5,7 @@ import { createAdminClient } from "../../config/appwrite";
 import { ID, Models, Query } from "appwrite";
 
 const HOURLY_INTEREST_RATE = 0.1; // 0.1% per hour
-// const LOCK_PERIOD_SECONDS = 3; // 3-second withdrawal lock for testing
+const LOCK_PERIOD_SECONDS = 3; // 3-second withdrawal lock for testing
 
 export interface Deposit extends Models.Document {
   amount: number;
@@ -162,10 +162,14 @@ export async function withdrawDeposit(
     );
 
     const startDate = new Date(deposit.startDate);
-    const lockEnd = new Date(startDate.getTime() + 3000);
+    const lockEnd = new Date(startDate.getTime() + LOCK_PERIOD_SECONDS * 1000);
 
     if (new Date() < lockEnd) {
-      return { error: "Withdrawals locked for first 3 seconds" };
+      return {
+        error: `Withdrawals locked for first ${
+          LOCK_PERIOD_SECONDS / 86400
+        } days`,
+      };
     }
 
     const secondsSinceLockEnd = Math.ceil(
@@ -209,41 +213,68 @@ export async function withdrawDeposit(
   }
 }
 
-export async function incrementDeposit(userId: string, amount: number) {
+// Add this helper function
+function getReferralPercentage(count: number): number {
+  if (count < 5) return 5;
+  if (count < 10) return 7;
+  return 10;
+}
+
+// Update incrementDeposit function
+export async function incrementDeposit(userId: string, referredAmount: number) {
   const { databases } = await createAdminClient();
 
-  const deposits = await databases.listDocuments<Deposit>(
+  // Get referral count from separate collection
+  const referralResponse = await databases.listDocuments(
     process.env.NEXT_PUBLIC_APPWRITE_DATABASE!,
-    process.env.NEXT_PUBLIC_APPWRITE_COLLECTION!,
-    [Query.equal("userId", userId), Query.equal("isWithdrawn", false)]
+    process.env.NEXT_PUBLIC_APPWRITE_REFERRAL_COLLECTION!,
+    [Query.equal("userId", userId)]
   );
 
-  if (deposits.documents.length === 0) {
-    return await databases.createDocument(
+  const referralCount = referralResponse.documents[0]?.referralCount || 0;
+  const percentage = getReferralPercentage(referralCount);
+  const bonusAmount = (referredAmount * percentage) / 100;
+
+  // Update ACTIVE deposit instead of creating new one
+  const activeDeposits = await databases.listDocuments<Deposit>(
+    process.env.NEXT_PUBLIC_APPWRITE_DATABASE!,
+    process.env.NEXT_PUBLIC_APPWRITE_COLLECTION!,
+    [
+      Query.equal("userId", userId),
+      Query.equal("isWithdrawn", false),
+      Query.equal("type", "regular"), // Target main deposit
+    ]
+  );
+
+  if (activeDeposits.documents.length > 0) {
+    const mainDeposit = activeDeposits.documents[0];
+
+    // Only update currentValue, not initialAmount
+    await databases.updateDocument(
+      process.env.NEXT_PUBLIC_APPWRITE_DATABASE!,
+      process.env.NEXT_PUBLIC_APPWRITE_COLLECTION!,
+      mainDeposit.$id,
+      {
+        amount: mainDeposit.amount + bonusAmount,
+        totalWithdrawn: mainDeposit.totalWithdrawn, // Keep totalWithdrawn same
+      }
+    );
+  } else {
+    // Create new deposit if no active one exists
+    await databases.createDocument(
       process.env.NEXT_PUBLIC_APPWRITE_DATABASE!,
       process.env.NEXT_PUBLIC_APPWRITE_COLLECTION!,
       ID.unique(),
       {
         userId,
-        amount,
-        initialAmount: amount,
+        amount: bonusAmount,
+        initialAmount: 0, // No initialAmount for bonus
         totalWithdrawn: 0,
         startDate: new Date().toISOString(),
         interestRate: HOURLY_INTEREST_RATE,
         isWithdrawn: false,
-        type: "referral_bonus",
+        type: "regular",
       }
     );
   }
-
-  const deposit = deposits.documents[0];
-  return await databases.updateDocument(
-    process.env.NEXT_PUBLIC_APPWRITE_DATABASE!,
-    process.env.NEXT_PUBLIC_APPWRITE_COLLECTION!,
-    deposit.$id,
-    {
-      amount: deposit.amount + amount,
-      type: deposit.type === "regular" ? "regular" : "referral_bonus",
-    }
-  );
 }

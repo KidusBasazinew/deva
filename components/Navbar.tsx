@@ -9,7 +9,8 @@ import { destroySession } from "@/app/actions/destroySession";
 const baseLinks = [
   { label: "Home", href: "/" },
   { label: "Deposit", href: "/deposit" },
-  { label: "Dashboard", href: "/dashboard" },
+  { label: "Team", href: "/team" },
+  { label: "About", href: "/about" },
 ];
 
 const adminLinks = [

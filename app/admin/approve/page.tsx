@@ -14,6 +14,12 @@ interface PendingDeposit {
 
 const HOURLY_INTEREST_RATE = 0.1;
 
+const getReferralPercentage = (count: number): number => {
+  if (count < 5) return 5;
+  if (count < 10) return 7;
+  return 10;
+};
+
 export default function AdminApprovalPage() {
   const [pendingDeposits, setPendingDeposits] = useState<PendingDeposit[]>([]);
 
@@ -51,36 +57,112 @@ export default function AdminApprovalPage() {
   const handleApprove = async (deposit: PendingDeposit) => {
     const { databases } = await createAdminClient();
 
-    // Validate amount before proceeding
+    // Validate amount
     if (isNaN(deposit.amount)) {
       alert("Invalid deposit amount");
       return;
     }
 
-    await databases.createDocument(
-      process.env.NEXT_PUBLIC_APPWRITE_DATABASE!,
-      process.env.NEXT_PUBLIC_APPWRITE_COLLECTION!,
-      ID.unique(),
-      {
-        userId: deposit.userId,
-        amount: deposit.amount,
-        initialAmount: deposit.amount,
-        totalWithdrawn: 0,
-        startDate: new Date().toISOString(),
-        interestRate: HOURLY_INTEREST_RATE,
-        isWithdrawn: false,
-        type: "regular",
+    try {
+      // Create main deposit
+      await databases.createDocument(
+        process.env.NEXT_PUBLIC_APPWRITE_DATABASE!,
+        process.env.NEXT_PUBLIC_APPWRITE_COLLECTION!,
+        ID.unique(),
+        {
+          userId: deposit.userId,
+          amount: deposit.amount,
+          initialAmount: deposit.amount,
+          totalWithdrawn: 0,
+          startDate: new Date().toISOString(),
+          interestRate: HOURLY_INTEREST_RATE,
+          isWithdrawn: false,
+          type: "regular",
+        }
+      );
+
+      // Update pending status
+      await databases.updateDocument(
+        process.env.NEXT_PUBLIC_APPWRITE_DATABASE!,
+        process.env.NEXT_PUBLIC_APPWRITE_PENDING_COLLECTION!,
+        deposit.$id,
+        { status: "approved" }
+      );
+
+      // Check for referrals
+      const referralResponse = await databases.listDocuments(
+        process.env.NEXT_PUBLIC_APPWRITE_DATABASE!,
+        process.env.NEXT_PUBLIC_APPWRITE_REFERRAL_COLLECTION!,
+        [Query.equal("referredUser", deposit.userId)]
+      );
+
+      if (referralResponse.documents.length > 0) {
+        const referrerUserId = referralResponse.documents[0].userId;
+
+        // Get referrer's current referral count
+        const referrerData = await databases.listDocuments(
+          process.env.NEXT_PUBLIC_APPWRITE_DATABASE!,
+          process.env.NEXT_PUBLIC_APPWRITE_REFERRAL_COLLECTION!,
+          [Query.equal("userId", referrerUserId)]
+        );
+
+        const referralCount = referrerData.documents[0]?.referralCount || 0;
+        const percentage = getReferralPercentage(referralCount);
+        const bonusAmount = (deposit.amount * percentage) / 100;
+
+        // Update referral count
+        if (referrerData.documents.length > 0) {
+          await databases.updateDocument(
+            process.env.NEXT_PUBLIC_APPWRITE_DATABASE!,
+            process.env.NEXT_PUBLIC_APPWRITE_REFERRAL_COLLECTION!,
+            referrerData.documents[0].$id,
+            { referralCount: referralCount + 1 }
+          );
+        }
+
+        // Add referral bonus
+        const referrerDeposits = await databases.listDocuments(
+          process.env.NEXT_PUBLIC_APPWRITE_DATABASE!,
+          process.env.NEXT_PUBLIC_APPWRITE_COLLECTION!,
+          [
+            Query.equal("userId", referrerUserId),
+            Query.equal("isWithdrawn", false),
+            Query.equal("type", "referral_bonus"),
+          ]
+        );
+
+        if (referrerDeposits.documents.length === 0) {
+          await databases.createDocument(
+            process.env.NEXT_PUBLIC_APPWRITE_DATABASE!,
+            process.env.NEXT_PUBLIC_APPWRITE_COLLECTION!,
+            ID.unique(),
+            {
+              userId: referrerUserId,
+              amount: bonusAmount,
+              initialAmount: bonusAmount,
+              totalWithdrawn: 0,
+              startDate: new Date().toISOString(),
+              interestRate: HOURLY_INTEREST_RATE,
+              isWithdrawn: false,
+              type: "referral_bonus",
+            }
+          );
+        } else {
+          const existingDeposit = referrerDeposits.documents[0];
+          await databases.updateDocument(
+            process.env.NEXT_PUBLIC_APPWRITE_DATABASE!,
+            process.env.NEXT_PUBLIC_APPWRITE_COLLECTION!,
+            existingDeposit.$id,
+            { amount: existingDeposit.amount + bonusAmount }
+          );
+        }
       }
-    );
 
-    await databases.updateDocument(
-      process.env.NEXT_PUBLIC_APPWRITE_DATABASE!,
-      process.env.NEXT_PUBLIC_APPWRITE_PENDING_COLLECTION!,
-      deposit.$id,
-      { status: "approved" }
-    );
-
-    setPendingDeposits((prev) => prev.filter((d) => d.$id !== deposit.$id));
+      setPendingDeposits((prev) => prev.filter((d) => d.$id !== deposit.$id));
+    } catch (error) {
+      console.error("Approval error:", error);
+      alert("Failed to process approval");
+    }
   };
 
   return (
