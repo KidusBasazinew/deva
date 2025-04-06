@@ -2,7 +2,7 @@
 import { createAdminClient } from "@/config/appwrite";
 import { ID } from "node-appwrite";
 import { Query } from "appwrite";
-import { Deposit, incrementDeposit } from "./deposite";
+import { incrementDeposit } from "./deposite";
 
 async function createUser(
   prevState: { error: string; success?: boolean } | undefined,

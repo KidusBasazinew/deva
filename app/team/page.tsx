@@ -117,7 +117,7 @@ export default function Team() {
             </h3>
             <div className="text-sm mt-1">
               Earn <span className="font-semibold">{currentPercentage}%</span>{" "}
-              of each referred user's initial deposit.
+              of each referred user&apos;s initial deposit.
               <div className="mt-2">
                 <span className="font-semibold">Rate Tiers:</span>
                 <ul className="list-disc list-inside text-xs mt-1">
